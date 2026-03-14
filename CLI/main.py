@@ -18,6 +18,9 @@ def main():
         action = actions.get(choice)
         if action is not None:
             result = action()
-            if result is True:
-                break
+        else:
+            menu_printer.print_error("無効な選択です")
+            continue
+        if result is True:
+            break
 

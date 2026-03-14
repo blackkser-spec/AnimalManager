@@ -18,8 +18,8 @@ class AnimalManager:
         }
     SEARCH_MAP = {
         "ID": lambda a: [str(a.id)],
-        "名前": lambda a: [a.name.lower()],
-        "種類": lambda a: [(a.type_en or "").lower(), (a.type_jp or "")],
+        "種類": lambda a: [(a.type_en or "").lower(), (a.type_jp or "")],  
+        "名前": lambda a: [a.name.lower()],     
         "特技": lambda a: list(a.get_all_ability().keys())
         }
     

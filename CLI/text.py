@@ -5,11 +5,16 @@ COLORS = {
     "red": Fore.RED,
     "green": Fore.GREEN,
     "blue": Fore.BLUE,
+    "yellow": Fore.YELLOW,
 }
 def red(text):
     return color(text, "red")
 def blue(text):
     return color(text, "blue")
+def green(text):
+    return color(text, "green")
+def yellow(text):
+    return color(text, "yellow")
 
 def color(text, color_name):
     return f"{COLORS[color_name]}{text}{Style.RESET_ALL}"
@@ -29,7 +34,7 @@ def pad_right(text,total_width):
 
 TITLE     = "##### Animal Manager #####"
 TITLE_END = "##########################"
-RETRUN        = "0. 戻る"   
+RETURN        = "0.戻る"   
 MANAGE_ANIMAL = "1.動物を管理"
 ADD_ANIMAL    = "1.動物をリストに追加"
 ADD_RANDOM    = "2.動物をランダムに追加"
@@ -42,7 +47,7 @@ SORT_LIST     = "2.リストをソート"
 CLEAR_LIST    = "3.全てのデータをリセット"
 SEARCH_ANIMAL = "3.リストから動物を検索"
 EXIT_MANAGER  = "4.AnimalManagerを終了"
-SEARCH_CHOICE = "1:種類 2:名前 3:特性"
+SEARCH_CHOICE = "1:ID 2:種類 3:名前 4:特技"
 SORT_CHOICE   = "1:ID順 2:種類順 3:名前順"
 ACT_CHOICE    = "1:鳴かせる 2:飛ばせる 3:泳がせる"
 EDIT_ATTRIBUTE_CHOICE = "1:種類 2:名前 3:特技"
