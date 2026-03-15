@@ -26,28 +26,20 @@ class CliCommand:
                 self.menu_printer.print_error("無効な選択です")
             
     def add_animal_flow(self):
-        while True:
-            types = self.manager.get_available_animal_types()
-            self.menu_printer.print_animal_types(types)
-            choice = input("追加動物のindexを入力(0でキャンセル): ")
-            if choice == "0":
-                return
-            try:
-                idx = int(choice) - 1
-                if idx < 0: raise IndexError
-                animal_type = types[idx]
-            except (ValueError, IndexError):
-                self.menu_printer.print_error("無効な値が入力されました")
-                continue
+        animal_type = self._select_animal_type_flow("追加したい種類のindexまたは英名を入力")
+        if animal_type is None:
+            self.menu_printer.print_cancel("動物の追加をキャンセルしました")
+            return
 
-            name = input(f"{animal_type} につける名前を入力(未入力でキャンセル): ")
-            if not name: return
-            try:
-                self.manager.add_animal(animal_type, name)
-                self.menu_printer.print_success("動物を追加しました")
-                break
-            except ValueError as e:
-                self.menu_printer.print_error(str(e))
+        name = input(f"{animal_type} につける名前を入力(未入力でキャンセル): ")
+        if not name:
+            self.menu_printer.print_cancel("名前の入力をキャンセルしました")
+            return
+        try:
+            self.manager.add_animal(animal_type, name)
+            self.menu_printer.print_success("動物を追加しました")
+        except ValueError as e:
+            self.menu_printer.print_error(str(e))
 
     def add_random_flow(self):
         while True:
@@ -70,25 +62,14 @@ class CliCommand:
 
 
     def remove_animal_flow(self):
-        while True:
-            self.menu_printer.print_animal_list(self.manager.get_all_animals())
-            input_rmv = input("削除したい動物のIDを入力(0でキャンセル): ")
-            if input_rmv == "0":
-                return
-            else:
-                try:
-                    animal_id = int(input_rmv)  # 文字列を整数に変換
-                    if animal_id not in self.manager.animals:
-                        self.menu_printer.print_error("無効なIDが入力されました")
-                        continue
+        animal_id = self._select_animal_id_flow("削除したい動物のIDを入力")
+        if animal_id is None:
+            self.menu_printer.print_cancel("動物の削除をキャンセルしました")
+            return
 
-                    removed_animal = self.manager.remove_animal(animal_id)
-                    self.menu_printer.print_success(f"{removed_animal.name} を削除しました")
-                    break
-                except ValueError:
-                    self.menu_printer.print_error("無効なIDが入力されました")
-                except AttributeError:
-                    self.menu_printer.print_error("削除に失敗しました")
+        removed_animal = self.manager.remove_animal(animal_id)
+        if removed_animal:
+            self.menu_printer.print_success(f"{removed_animal.name} を削除しました")
 
     def edit_animal_attribute_flow(self):
         edit_map = {
@@ -97,32 +78,30 @@ class CliCommand:
             "3": self.edit_ability
             }
         self.menu_printer.print_edit_choice()
-        choice = input()
+        choice = input("実行する処理のindexを入力(0でキャンセル): ")
         if choice == "0":
             return
-        elif choice in ["1", "2", "3"]:
+        elif choice in edit_map:
             action = edit_map[choice]
             action()
         else:
             self.menu_printer.print_error("無効な選択です")
 
-    def edit_type(self): # WIP
-        self.menu_printer.print_animal_list(self.manager.get_all_animals())
-        while True:
-            target_id = input("変更したい動物のIDを入力: ")
-            if target_id == "0":
-                return
-            target_animal = self.manager.get_animal(int(target_id))
-            if target_animal is None:
-                self.menu_printer.print_error("無効なIDが入力されました")
-                continue
-            else:
-                break
-        
-        self.menu_printer.print_animal_types(self.manager.get_available_animal_types())
-        new_type = input(f"{animal.name} の新しい種類を入力: ")
+    def edit_type(self):
+        target_id = self._select_animal_id_flow("変更したい動物のIDを入力")
+        if target_id is None:
+            self.menu_printer.print_cancel("種類の変更をキャンセルしました")
+            return
 
+        target_animal = self.manager.get_animal(target_id)
+        prompt = f"ID:{target_id} {target_animal.name} の新しい種類を入力"
+        new_type = self._select_animal_type_flow(prompt)
+        if new_type is None:
+            self.menu_printer.print_cancel("種類の変更をキャンセルしました")
+            return
 
+        updated_animal = self.manager.edit_animal_type(target_id, new_type)
+        self.menu_printer.print_success(f"{updated_animal.name} の種類を {new_type} に更新しました")
 
     def edit_name(self):
         print("nameを編集します")
@@ -210,3 +189,40 @@ class CliCommand:
     def exit_manager(self):        
         self.manager.save_to_file()
         return True
+
+    # --- Private Helper Methods ---
+
+    def _select_animal_id_flow(self, prompt):
+        """動物リストを表示し、ユーザーにIDを選択させるフロー"""
+        self.menu_printer.print_animal_list(self.manager.get_all_animals())
+        while True:
+            target_id_str = input(f"{prompt}(0でキャンセル): ")
+            if target_id_str == "0":
+                return None
+            try:
+                target_id = int(target_id_str)
+                if self.manager.get_animal(target_id) is None:
+                    self.menu_printer.print_error("無効なIDが入力されました")
+                    continue
+                return target_id
+            except ValueError:
+                self.menu_printer.print_error("IDは数値で入力してください")
+
+    def _select_animal_type_flow(self, prompt):
+        """動物の種類リストを表示し、ユーザーに種類を選択させるフロー"""
+        types = self.manager.get_available_animal_types()
+        self.menu_printer.print_animal_types(types)
+        while True:
+            choice = input(f"{prompt}(0でキャンセル): ").strip()
+            if choice == "0":
+                return None
+            try:
+                if choice.isdigit():
+                    idx = int(choice) - 1
+                    if not (0 <= idx < len(types)): raise IndexError
+                    return types[idx]
+                else:
+                    if choice not in types: raise ValueError
+                    return choice
+            except (ValueError, IndexError):
+                self.menu_printer.print_error("無効な値が入力されました")
