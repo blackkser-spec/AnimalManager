@@ -19,17 +19,17 @@ class Animal:
         return True
     
     def voice(self):
-        return f"{self.name}は{self.voice_msg}"
+        return f"{self.name} は{self.voice_msg}"
 
     def fly(self):
         fly_data = self.get_all_ability().get("fly")
         if fly_data:
-            return f"{self.name}は{fly_data['msg']}"
+            return f"{self.name} は{fly_data['msg']}"
         return None
     def swim(self):
         swim_data = self.get_all_ability().get("swim")
         if swim_data:
-            return f"{self.name}は{swim_data['msg']}"
+            return f"{self.name} は{swim_data['msg']}"
         return None
 
 class Bird(Animal):

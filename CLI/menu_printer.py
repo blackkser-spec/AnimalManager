@@ -11,7 +11,6 @@ def print_menu():
     print(text.blue(text.TITLE_END))
 
 def print_manage_animal():
-    print(text.blue(text.RETURN))
     print(text.blue(text.ADD_ANIMAL))
     print(text.blue(text.ADD_RANDOM))
     print(text.blue(text.REMOVE_ANIMAL))
@@ -19,16 +18,22 @@ def print_manage_animal():
     print(text.blue(text.ACT_ANIMAL))
 
 def print_manage_list():
-    print(text.blue(text.RETURN))
     print(text.blue(text.SHOW_LIST))
     print(text.blue(text.SORT_LIST))
     print(text.blue(text.CLEAR_LIST))
 
 def print_animal_types(types):
-    print("動物の種類一覧:")
+    print("動物の種類一覧")
     count = 1
     for t in types:
         print(f"{count}.{t}")
+        count += 1
+
+def print_ability_choice(abilities):
+    print("特技の一覧")
+    count = 1
+    for a in abilities:
+        print(f"{count}.{a}")
         count += 1
 
 def print_animal_list(animals):
@@ -43,19 +48,19 @@ def print_animal_list(animals):
         print(f"{id_str}{type_jp}{name}")
 
 def print_edit_choice():
-    print("変更したい属性を選択(0でキャンセル))")
+    print("変更したい属性を選択")
     print(text.EDIT_ATTRIBUTE_CHOICE)
 
 def print_act_choice():
-    print("実行させたい特技を選択(0でキャンセル)")
+    print("実行させたい特技を選択")
     print(text.ACT_CHOICE)
 
 def print_sort_category():
-    print("ソートしたい要素を選択(0でキャンセル)")
+    print("ソートしたい要素を選択")
     print(text.SORT_CHOICE)
 
 def print_search_choice():
-    print("検索したい要素を選択(0でキャンセル)")
+    print("検索したい要素を選択")
     print(text.SEARCH_CHOICE)
 
 def print_confirm(message):
