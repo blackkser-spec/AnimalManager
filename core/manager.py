@@ -31,15 +31,14 @@ class AnimalManager:
         self.initial_state_json = self._get_state_as_json()
 
     def _get_state_as_json(self):
-        """現在のマネージャの状態をJSON文字列としてシリアライズする"""
+        """現在のマネージャの状態をJSON文字列として保存可能にする"""
         animal_list = []
         for animal in self.animals.values():
             animal_list.append({
                 "id": animal.id, "name": animal.name, "type_en": animal.type_en,
                 "ex_ability": animal.ex_ability
             })
-        data = {"id_counter": self.id_counter, "naming_count": self.naming_count, "animals": animal_list}
-        return json.dumps(data, sort_keys=True, ensure_ascii=False)
+        return {"id_counter": self.id_counter, "naming_count": self.naming_count, "animals": animal_list}
 
     def is_changed(self):
         """初期状態から変更があったかどうかを判定する"""
@@ -174,17 +173,7 @@ class AnimalManager:
         return sorted(results, key=lambda x: x.id)
 
     def save_to_file(self):
-        animal_list = []
-        for animal in self.animals.values():
-            animal_list.append({
-                "id"  : animal.id,
-                "name": animal.name,
-                "type_en": animal.type_en,
-                "ex_ability": animal.ex_ability
-            })
-        data = {"id_counter"  : self.id_counter,
-                "naming_count": self.naming_count,
-                "animals"     : animal_list}
+        data = self._get_state_as_json()
         try:
             # ディレクトリが存在しない場合は作成する
             directory = os.path.dirname(self.data_file)
