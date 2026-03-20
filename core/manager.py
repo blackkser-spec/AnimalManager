@@ -3,6 +3,9 @@ import random
 import json
 import os
 
+class AnimalNotFoundError(Exception):
+    pass
+
 class AnimalManager:
     AVAILABLE_ANIMAL_TYPES = {
         "bird":animal.Bird,
@@ -22,9 +25,11 @@ class AnimalManager:
         "名前": lambda a: [a.name.lower()],     
         "特技": lambda a: list(a.get_all_ability().keys())
         }
+    ALLOWED_SORT_KEYS = {"id", "type_en", "type_jp", "name"}
+    ALLOWED_ACTIONS = {"voice", "fly", "swim"}
     
     def __init__(self, data_file="data/animals.json"):
-        self.data_file = data_file
+        self.data_file    = data_file
         self.id_counter   = 1
         self.naming_count = {key: 0 for key in self.AVAILABLE_ANIMAL_TYPES}
         self.animals      = {}
@@ -43,6 +48,17 @@ class AnimalManager:
     def is_changed(self):
         """初期状態から変更があったかどうかを判定する"""
         return self.initial_state_json != self._get_state_as_json()
+    
+    # --- get method ---
+    
+    def get_animal(self, animal_id, raise_error=True):
+        animal = self.animals.get(animal_id)
+        if raise_error and animal is None:
+            raise AnimalNotFoundError(f"ID:{animal_id} に該当する動物は存在しません")
+        return animal
+    
+    def get_all_animals(self):
+        return sorted(self.animals.values(), key=lambda x: x.id)    
 
     def get_available_animal_types(self):
         return list(self.AVAILABLE_ANIMAL_TYPES.keys())
@@ -64,6 +80,13 @@ class AnimalManager:
         return animal_instance
 
     def add_random_animal(self, count):
+        if not isinstance(count, int):
+            try:
+                count = int(count)
+            except (ValueError, TypeError):
+                raise ValueError("追加回数は整数で指定してください")
+        if count <= 0:
+            raise ValueError("追加回数は1以上を指定してください")
         added_animals = []
         for _ in range(count):
             animal_type = random.choice(list(self.AVAILABLE_ANIMAL_TYPES.keys()))
@@ -71,17 +94,15 @@ class AnimalManager:
             name   = f"{animal_type}{self.naming_count[animal_type]}"
             added_animals.append(self.add_animal(animal_type, name))
         return added_animals
+    
 
     def remove_animal(self, animal_id):
-        return self.animals.pop(animal_id, None)
+        self.get_animal(animal_id)
+        return self.animals.pop(animal_id)
     
-    def get_animal(self, animal_id):
-        return self.animals.get(animal_id)
 
     def edit_animal_type(self, animal_id, new_type):
-        target_animal = self.animals.get(animal_id)
-        if target_animal is None:
-            raise ValueError("そのIDの動物は存在しません")
+        target_animal = self.get_animal(animal_id)
         
         if new_type not in self.AVAILABLE_ANIMAL_TYPES:
             raise ValueError("無効な種類の動物です")
@@ -93,9 +114,7 @@ class AnimalManager:
         return new_animal
     
     def edit_animal_name(self, animal_id, new_name):
-        target_animal = self.animals.get(animal_id)
-        if target_animal is None:
-            raise ValueError("そのIDの動物は存在しません")
+        target_animal = self.get_animal(animal_id)
         if not new_name:
             raise ValueError("名前は空白にできません")
         if len(new_name) > 20:
@@ -105,9 +124,7 @@ class AnimalManager:
         return target_animal
 
     def edit_animal_ability(self, animal_id, new_ability):
-        target_animal = self.animals.get(animal_id)
-        if target_animal is None:
-            raise ValueError("そのIDの動物は存在しません")
+        target_animal = self.get_animal(animal_id)
         if new_ability not in self.AVAILABLE_ABILITIES:
             raise ValueError("無効な特技です")
             
@@ -119,6 +136,8 @@ class AnimalManager:
         # action_name は "voice", "fly", "swim" など、直接的なメソッド名
         if not action_name:
             return []
+        if action_name not in self.ALLOWED_ACTIONS:
+             raise ValueError(f"無効なアクションです: {action_name}")
 
         # 特定の行動に必要な能力をマッピング
         ability_map = {
@@ -138,10 +157,9 @@ class AnimalManager:
                         results.append(result)
         return results
 
-    def get_all_animals(self):
-        return list(self.animals.values())
-
     def sort_list(self, category):
+        if category not in self.ALLOWED_SORT_KEYS:
+            raise ValueError(f"ソートできない属性です: {category}")
         return sorted(self.animals.values(), key=lambda a: getattr(a, category)) 
 
     def data_reset(self):
@@ -152,6 +170,9 @@ class AnimalManager:
 
     def search_animal(self, attr, keyword):
         """キーワードと属性で動物を検索する"""
+        if attr != "すべて" and attr not in self.SEARCH_MAP:
+            raise ValueError(f"無効な検索属性です: {attr}")
+
         if not keyword:
             return sorted(self.animals.values(), key=lambda x: x.id)
 
@@ -164,8 +185,6 @@ class AnimalManager:
                     values.extend(getter(animal))
             else:
                 getter = self.SEARCH_MAP.get(attr)
-                if not getter:
-                    continue
                 values = getter(animal)
             if any(keyword in str(v).lower() for v in values):
                 results.append(animal)

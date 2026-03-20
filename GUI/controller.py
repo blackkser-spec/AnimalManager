@@ -1,6 +1,6 @@
 from tkinter import messagebox
 
-class Command:
+class Controller:
     def __init__(self, layout, manager):
         self.layout = layout
         self.manager = manager
@@ -91,18 +91,24 @@ class Command:
             self.layout.act_window.destroy()
             return
         # UIからの選択("voice"など)を直接managerに渡す
-        results = self.manager.act_animal(choice)
-        # 結果をコンソールに出力（将来的にはb_frameに表示）
-        for result in results:
-            self.layout.log(result)
+        try:
+            results = self.manager.act_animal(choice)
+            # 結果をコンソールに出力（将来的にはb_frameに表示）
+            for result in results:
+                self.layout.log(result)
+        except ValueError as e:
+            self.layout.log(str(e))
         
         self.layout.act_window.destroy()
         
     def search(self):
         attribute = self.layout.search_attr.get()
         keyword = self.layout.search_entry.get()
-        animals = self.manager.search_animal(attribute, keyword)
-        self.layout.refresh_list(animals)
+        try:
+            animals = self.manager.search_animal(attribute, keyword)
+            self.layout.refresh_list(animals)
+        except ValueError as e:
+            self.layout.log(str(e))
 
     def clear_search(self):
         self.layout.search_entry.delete(0, "end")
@@ -119,7 +125,11 @@ class Command:
         # 検索窓に入力されている内容に基づいてリストを取得
         attribute = self.layout.search_attr.get()
         keyword = self.layout.search_entry.get()
-        animals = self.manager.search_animal(attribute, keyword)
+        try:
+            animals = self.manager.search_animal(attribute, keyword)
+        except ValueError as e:
+            self.layout.log(str(e))
+            return
         
         # 取得したリストをソート
         animals.sort(key=lambda x: getattr(x, category))

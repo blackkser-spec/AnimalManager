@@ -1,18 +1,18 @@
 import tkinter   as tk
 from tkinter import ttk
-from GUI.command import Command
+from GUI.controller import Controller
 from core.manager import AnimalManager
 
 class Layout:
     def __init__(self, root):
         self.manager = AnimalManager()
-        self.cmd = Command(self, self.manager)
+        self.ctrl = Controller(self, self.manager)
 
         self.root = root
         self.root.geometry("600x400+200+100")
         self.root.title("Tkinter Test")
         self.root.resizable(False,False)
-        self.root.protocol("WM_DELETE_WINDOW", self.cmd.on_close)
+        self.root.protocol("WM_DELETE_WINDOW", self.ctrl.on_close)
         
         self.create_widgets()
         self.manager.load_from_file()
@@ -48,10 +48,10 @@ class Layout:
 
     def _create_topleft_panel(self):
         """左パネルのボタン群を生成する"""
-        buttons = [("動物追加", self.cmd.add), ("ランダム追加", self.cmd.random_add),
-                   ("動物削除", self.cmd.remove), ("動物編集", self.cmd.edit),
-                   ("動物行動", self.cmd.act), ("データ保存", self.cmd.save),
-                   ("データ消去", self.cmd.list_clear)]
+        buttons = [("動物追加", self.ctrl.add), ("ランダム追加", self.ctrl.random_add),
+                   ("動物削除", self.ctrl.remove), ("動物編集", self.ctrl.edit),
+                   ("動物行動", self.ctrl.act), ("データ保存", self.ctrl.save),
+                   ("データ消去", self.ctrl.list_clear)]
         for i, (text, method_name) in enumerate(buttons):
             tk.Button(self.tl_frame,text=text, command=method_name, width=10).pack(expand=True, fill="both")
 
@@ -75,26 +75,26 @@ class Layout:
         # 検索入力欄
         self.search_entry = tk.Entry(search_frame, width=20)
         self.search_entry.pack(side=tk.LEFT, fill="x", expand=True, padx=2)
-        self.search_entry.bind("<Return>", lambda event: self.cmd.search()) # Enterキーで実行
+        self.search_entry.bind("<Return>", lambda event: self.ctrl.search()) # Enterキーで実行
 
         # 実行ボタン & クリアボタン
-        tk.Button(search_frame, text="検索", command=self.cmd.search, width=6, bg="#e1e1e1").pack(side=tk.LEFT, padx=2)
-        tk.Button(search_frame, text="×", command=self.cmd.clear_search, width=3, bg="#ffdddd").pack(side=tk.LEFT, padx=(2, 8))
+        tk.Button(search_frame, text="検索", command=self.ctrl.search, width=6, bg="#e1e1e1").pack(side=tk.LEFT, padx=2)
+        tk.Button(search_frame, text="×", command=self.ctrl.clear_search, width=3, bg="#ffdddd").pack(side=tk.LEFT, padx=(2, 8))
 
         # --- Treeviewエリア ---
         columns = ("id", "type", "name")
         self.tree_animals = ttk.Treeview(self.tr_frame, columns=columns, show="headings")
-        self.tree_animals.heading("id",   text="ID",   command=lambda: self.cmd.sort_tree("id"))
-        self.tree_animals.heading("type", text="種類", command=lambda: self.cmd.sort_tree("type_en"))
-        self.tree_animals.heading("name", text="名前", command=lambda: self.cmd.sort_tree("name"))
+        self.tree_animals.heading("id",   text="ID",   command=lambda: self.ctrl.sort_tree("id"))
+        self.tree_animals.heading("type", text="種類", command=lambda: self.ctrl.sort_tree("type_en"))
+        self.tree_animals.heading("name", text="名前", command=lambda: self.ctrl.sort_tree("name"))
         self.tree_animals.column ("id",   width=10,  anchor="w")
         self.tree_animals.column ("type", width=50,  anchor="w")
         self.tree_animals.column ("name", width=200, anchor="w")
 
         self.scrollbar = tk.Scrollbar(self.tr_frame)
         self.tree_menu = tk.Menu(self.tree_animals, tearoff=0)
-        self.tree_menu.add_command(label="編集", command=self.cmd.edit)
-        self.tree_menu.add_command(label="削除", command=self.cmd.remove)
+        self.tree_menu.add_command(label="編集", command=self.ctrl.edit)
+        self.tree_menu.add_command(label="削除", command=self.ctrl.remove)
         self.tree_animals.bind("<Button-3>", self.show_tree_menu)
     
         self.tree_animals.config(yscrollcommand=self.scrollbar.set)
@@ -154,7 +154,7 @@ class Layout:
         #決定/キャンセルボタン
         self.create_ok_cancel_btn(
             self.add_window,
-            lambda: self.cmd.execute_add(self.add_type_combo.get(),self.add_name_entry.get()))
+            lambda: self.ctrl.execute_add(self.add_type_combo.get(),self.add_name_entry.get()))
     
     def open_random_dialog(self):
         self.random_window = self.create_dialog("ランダム追加")
@@ -168,7 +168,7 @@ class Layout:
             tk.Button(
                 frame,
                 text=text,
-                command=lambda c=count: self.cmd.execute_random_add(c),
+                command=lambda c=count: self.ctrl.execute_random_add(c),
                 width=8
                 ).grid(row=0, column=i, padx=1)
         tk.Button(self.random_window, text="キャンセル",
@@ -220,7 +220,7 @@ class Layout:
         }
 
         # 決定・キャンセルボタン (下部に固定配置)
-        self.create_ok_cancel_btn(self.edit_window, lambda: self.cmd.execute_edit())
+        self.create_ok_cancel_btn(self.edit_window, lambda: self.ctrl.execute_edit())
 
 
     def change_editor(self, event):
@@ -244,7 +244,7 @@ class Layout:
             state="readonly"
         )
         self.act_target.pack(pady=5)
-        self.create_ok_cancel_btn(self.act_window, lambda: self.cmd.execute_act(self.act_target.get()))
+        self.create_ok_cancel_btn(self.act_window, lambda: self.ctrl.execute_act(self.act_target.get()))
     
     def create_dialog(self, title, width=240, height=160):
         window = tk.Toplevel(self.root)
