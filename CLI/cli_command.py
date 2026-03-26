@@ -176,7 +176,8 @@ class CliCommand:
             return
 
         try:
-            sorted_list = self.manager.sort_list(category)
+            target_list = self.manager.get_all_animals()
+            sorted_list = self.manager.sort_list(target_list, category)
             self.menu_printer.print_animal_list(sorted_list)
             return True
         except ValueError as e:

@@ -1,10 +1,12 @@
 from CLI import menu_printer
 from core.manager import AnimalManager
+from core.storage import JsonStorage
 from CLI.cli_command import CliCommand
 
 
 def main():
-    manager = AnimalManager()
+    storage = JsonStorage("data/animals.json")
+    manager = AnimalManager(storage)
     command = CliCommand(manager)
     manager.load_from_file()
     actions = {
@@ -23,4 +25,3 @@ def main():
             continue
         if result is True:
             break
-

@@ -1,7 +1,5 @@
 from core import animal
 import random
-import json
-import os
 
 class AnimalNotFoundError(Exception):
     pass
@@ -28,26 +26,23 @@ class AnimalManager:
     ALLOWED_SORT_KEYS = {"id", "type_en", "type_jp", "name"}
     ALLOWED_ACTIONS = {"voice", "fly", "swim"}
     
-    def __init__(self, data_file="data/animals.json"):
-        self.data_file    = data_file
+    def __init__(self, storage):
+        self.storage      = storage
         self.id_counter   = 1
         self.naming_count = {key: 0 for key in self.AVAILABLE_ANIMAL_TYPES}
         self.animals      = {}
-        self.initial_state_json = self._get_state_as_json()
+        self.initial_state_data = self._get_serializable_data()
 
-    def _get_state_as_json(self):
-        """現在のマネージャの状態をJSON文字列として保存可能にする"""
+    def _get_serializable_data(self):
+        """現在のマネージャの状態を辞書形式で取得する"""
         animal_list = []
         for animal in self.animals.values():
-            animal_list.append({
-                "id": animal.id, "name": animal.name, "type_en": animal.type_en,
-                "ex_ability": animal.ex_ability
-            })
+            animal_list.append(animal.to_dict())
         return {"id_counter": self.id_counter, "naming_count": self.naming_count, "animals": animal_list}
 
     def is_changed(self):
         """初期状態から変更があったかどうかを判定する"""
-        return self.initial_state_json != self._get_state_as_json()
+        return self.initial_state_data != self._get_serializable_data()
     
     # --- get method ---
     
@@ -157,16 +152,16 @@ class AnimalManager:
                         results.append(result)
         return results
 
-    def sort_list(self, category):
+    def sort_list(self, target_list, category):
         if category not in self.ALLOWED_SORT_KEYS:
             raise ValueError(f"ソートできない属性です: {category}")
-        return sorted(self.animals.values(), key=lambda a: getattr(a, category)) 
+        return sorted(target_list, key=lambda a: getattr(a, category)) 
 
     def data_reset(self):
         self.animals.clear()
         self.id_counter   = 1
         self.naming_count = {key: 0 for key in self.AVAILABLE_ANIMAL_TYPES}
-        self.initial_state_json = self._get_state_as_json()
+        self.initial_state_data = self._get_serializable_data()
 
     def search_animal(self, attr, keyword):
         """キーワードと属性で動物を検索する"""
@@ -192,48 +187,32 @@ class AnimalManager:
         return sorted(results, key=lambda x: x.id)
 
     def save_to_file(self):
-        data = self._get_state_as_json()
-        try:
-            # ディレクトリが存在しない場合は作成する
-            directory = os.path.dirname(self.data_file)
-            if directory:
-                os.makedirs(directory, exist_ok=True)
-                
-            with open(self.data_file,"w",encoding="UTF-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
+        data = self._get_serializable_data()
+        if self.storage.save(data):
             # 保存が成功したら、現在の状態を新しい「未変更」状態とする
-            self.initial_state_json = self._get_state_as_json()
+            self.initial_state_data = self._get_serializable_data()
             return True
-        except IOError:
-            return False
+        return False
 
     def load_from_file(self):
-        try:
-            with open(self.data_file,"r",encoding="UTF-8") as f:
-                data = json.load(f)
-            self.id_counter   = data.get("id_counter",1)
-            loaded_count      = data.get("naming_count", {})
-            for key in self.naming_count:
-                if key in loaded_count:
-                    self.naming_count[key] = loaded_count[key]
+        data = self.storage.load()
+        if data is None:
+            return False
 
-            for item in data.get("animals",[]):
-                animal_type = item["type_en"]
-                cls = self.AVAILABLE_ANIMAL_TYPES.get(animal_type)
-                if cls:
-                    animal = cls(item["id"],item["name"])
-                    animal.ex_ability = dict(item.get("ex_ability",{}))
-                    self.animals[item["id"]] = animal
-            # ロードが成功したら、現在の状態を新しい「未変更」状態とする
-            self.initial_state_json = self._get_state_as_json()
-            return True
-        except (FileNotFoundError, OSError):
-            return False
-        except json.JSONDecodeError:
-            try:
-                # 拡張子を維持したままファイル名を変更
-                base, ext = os.path.splitext(self.data_file)
-                os.rename(self.data_file, f"{base}_broken{ext}")
-            except:
-                pass
-            return False
+        self.id_counter   = data.get("id_counter",1)
+        loaded_count      = data.get("naming_count", {})
+        for key in self.naming_count:
+            if key in loaded_count:
+                self.naming_count[key] = loaded_count[key]
+
+        for item in data.get("animals",[]):
+            animal_type = item["type_en"]
+            cls = self.AVAILABLE_ANIMAL_TYPES.get(animal_type)
+            if cls:
+                animal = cls(item["id"],item["name"])
+                animal.ex_ability = dict(item.get("ex_ability",{}))
+                self.animals[item["id"]] = animal
+        
+        # ロードが成功したら、現在の状態を新しい「未変更」状態とする
+        self.initial_state_data = self._get_serializable_data()
+        return True

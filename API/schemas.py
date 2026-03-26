@@ -30,5 +30,16 @@ class SearchAttr(str, Enum):
     name = "名前"
     ability = "特技"
 
+class SortAttr(str, Enum):
+    id = "ID"
+    type_en = "種類:英語"
+    type_jp = "種類:日本語"
+    name = "名前"
+
+class AbilityType(str, Enum):
+    voice = "voice"
+    fly   = "fly"
+    swim  = "swim"
+
 class AnimalDetail(AnimalResponse):
     abilities: dict

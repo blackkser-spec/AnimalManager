@@ -8,6 +8,15 @@ class Animal:
         self.ex_ability  = ex_ability or {}
         self.voice_msg   = voice_msg
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "type_en": self.type_en,
+            "type_jp": self.type_jp,
+            "ex_ability": self.ex_ability
+        }
+
     def get_all_ability(self):
         combined = dict(self.ability)
         combined.update(self.ex_ability)

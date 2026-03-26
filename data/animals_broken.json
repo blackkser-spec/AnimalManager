@@ -1,0 +1,12 @@
+{
+    "id_counter": 6,
+    "naming_count": {
+        "bird": 2,
+        "cat": 1,
+        "dog": 0,
+        "duck": 1,
+        "fish": 1,
+        "penguin": 0
+    },
+    "animals": [
+        
