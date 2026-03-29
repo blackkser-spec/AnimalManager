@@ -184,14 +184,14 @@ class CliCommand:
             self.menu_printer.print_error(str(e))
         
     def reset_manager_flow(self):
-        self.menu_printer.print_confirm("本当にリセットする場合 yes を入力してください")
+        self.menu_printer.print_confirm("本当に消去する場合 yes を入力してください")
         choice = input().strip().lower()
         if choice != "yes":
-            self.menu_printer.print_cancel("リセットをキャンセルしました")
+            self.menu_printer.print_cancel("データの消去をキャンセルしました")
             return
         else:
-            self.manager.data_reset()
-            self.menu_printer.print_success("データをリセットしました")
+            self.manager.data_clear()
+            self.menu_printer.print_success("データを消去しました")
             return True
 
 

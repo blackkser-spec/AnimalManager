@@ -152,7 +152,7 @@ def get_animal(id: int):
     summary="データリセット",
     description="全てのデータを消去し初期状態に戻します")
 def reset_data():
-    manager.data_reset()
+    manager.data_clear()
     if not manager.save_to_file():
         raise HTTPException(status_code=500, detail="データの保存に失敗しました")
     return {"message": "Data has been reset successfully"}

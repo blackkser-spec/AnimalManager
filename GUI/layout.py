@@ -1,12 +1,22 @@
 import tkinter   as tk
 from tkinter import ttk
-from GUI.controller import Controller
+from controller.base import BaseController
 from core.manager import AnimalManager
 
 class Layout:
-    def __init__(self, root):
-        self.manager = AnimalManager()
-        self.ctrl = Controller(self, self.manager)
+    def __init__(self, root, use_mode=None):
+        self.use_mode = use_mode
+        if not self.use_mode:
+            root.destroy()
+            return
+        
+        # Managerはローカル/APIどちらでも必要（型の定義やキャッシュとして利用可能）
+        from core.storage import JsonStorage  #これは何か
+        self.manager = AnimalManager(JsonStorage("data/animals.json"))
+        self.ctrl = BaseController(self, self.manager)
+        if not self.ctrl:
+            root.destroy()
+            return
 
         self.root = root
         self.root.geometry("600x400+200+100")
@@ -48,10 +58,10 @@ class Layout:
 
     def _create_topleft_panel(self):
         """左パネルのボタン群を生成する"""
-        buttons = [("動物追加", self.ctrl.add), ("ランダム追加", self.ctrl.random_add),
+        buttons = [("動物追加", self.ctrl.add), ("ランダム追加", self.ctrl.add_random),
                    ("動物削除", self.ctrl.remove), ("動物編集", self.ctrl.edit),
                    ("動物行動", self.ctrl.act), ("データ保存", self.ctrl.save),
-                   ("データ消去", self.ctrl.list_clear)]
+                   ("データ消去", self.ctrl.data_clear)]
         for i, (text, method_name) in enumerate(buttons):
             tk.Button(self.tl_frame,text=text, command=method_name, width=10).pack(expand=True, fill="both")
 
@@ -168,7 +178,7 @@ class Layout:
             tk.Button(
                 frame,
                 text=text,
-                command=lambda c=count: self.ctrl.execute_random_add(c),
+                command=lambda c=count: self.ctrl.execute_add_random(c),
                 width=8
                 ).grid(row=0, column=i, padx=1)
         tk.Button(self.random_window, text="キャンセル",
@@ -177,7 +187,6 @@ class Layout:
             
     def open_edit_dialog(self, animal_id):
         self.edit_window = self.create_dialog("登録情報編集", height=200)
-        # animal_id を保持
         self.edit_target_id = animal_id
         # 編集項目combobox
         ttk.Label(self.edit_window, text="編集項目").pack(pady=1)

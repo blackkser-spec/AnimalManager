@@ -1,48 +1,12 @@
 {
-    "id_counter": 6,
+    "id_counter": 1,
     "naming_count": {
         "bird": 0,
-        "cat": 1,
+        "cat": 0,
         "dog": 0,
-        "duck": 2,
-        "fish": 2,
+        "duck": 0,
+        "fish": 0,
         "penguin": 0
     },
-    "animals": [
-        {
-            "id": 1,
-            "name": "cat1",
-            "type_en": "cat",
-            "type_jp": "猫",
-            "ex_ability": {}
-        },
-        {
-            "id": 2,
-            "name": "だっくAPI",
-            "type_en": "duck",
-            "type_jp": "アヒル",
-            "ex_ability": {}
-        },
-        {
-            "id": 3,
-            "name": "fish1",
-            "type_en": "fish",
-            "type_jp": "魚",
-            "ex_ability": {}
-        },
-        {
-            "id": 4,
-            "name": "duck2",
-            "type_en": "duck",
-            "type_jp": "アヒル",
-            "ex_ability": {}
-        },
-        {
-            "id": 5,
-            "name": "fish2",
-            "type_en": "fish",
-            "type_jp": "魚",
-            "ex_ability": {}
-        }
-    ]
+    "animals": []
 }

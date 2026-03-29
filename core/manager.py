@@ -157,7 +157,7 @@ class AnimalManager:
             raise ValueError(f"ソートできない属性です: {category}")
         return sorted(target_list, key=lambda a: getattr(a, category)) 
 
-    def data_reset(self):
+    def data_clear(self):
         self.animals.clear()
         self.id_counter   = 1
         self.naming_count = {key: 0 for key in self.AVAILABLE_ANIMAL_TYPES}
@@ -195,6 +195,9 @@ class AnimalManager:
         return False
 
     def load_from_file(self):
+        # ロード前に現在のデータをクリアする（重複防止）
+        self.animals.clear()
+        
         data = self.storage.load()
         if data is None:
             return False
