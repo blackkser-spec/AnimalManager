@@ -57,9 +57,12 @@ class RemoteController(BaseController):
             return response.json()
         except Exception as e:
             raise Exception(f"通信エラー(行動実行): {e}")
+    
+    def is_valid_action(self, choice):
+        return choice in self.manager.ALLOWED_ACTIONS
 
     def save(self):
-        self.layout.log("リモートモードでは自動保存されます")
+        return "APIモードは自動保存の為 この機能は制限されています"
 
     def data_clear(self):
         try:
@@ -68,4 +71,7 @@ class RemoteController(BaseController):
             self.manager.load_from_file()
         except Exception as e:
             raise Exception(f"通信エラー: {e}")
+    
+    def has_unsaved_changes(self):
+        return False
         

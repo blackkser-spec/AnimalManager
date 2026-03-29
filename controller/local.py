@@ -39,14 +39,17 @@ class LocalController(BaseController):
     def execute_act(self, choice):
         results = self.manager.act_animal(choice)
         return results
+    
+    def is_valid_action(self, choice):
+        return choice in self.manager.ALLOWED_ACTIONS
 
     def save(self):
-        try:
-            self.manager.save_to_file()
-            self.layout.log("データを保存しました")
-        except Exception as e:
-            self.layout.log(f"保存失敗: {e}")
+        self.manager.save_to_file()
+        return "ローカルデータを保存しました"
 
     def data_clear(self):
         self.manager.data_clear()
         self.manager.save_to_file()
+
+    def has_unsaved_changes(self):
+        return self.manager.is_changed()
