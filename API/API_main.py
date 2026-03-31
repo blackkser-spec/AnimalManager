@@ -40,8 +40,10 @@ def add_animal(req: schemas.Animal):
 
     return schemas.AnimalResponse(
         id=new_animal.id,
-        type=new_animal.type_en,
-        name=new_animal.name
+        type_en=new_animal.type_en,
+        type_jp=new_animal.type_jp,
+        name=new_animal.name,
+        abilities=list(new_animal.get_all_ability().keys())
     )
 
 @app.post(
@@ -60,8 +62,10 @@ def add_random_animal(count: int):
     return [
         schemas.AnimalResponse(
             id=animal.id,
-            type=animal.type_en,
-            name=animal.name
+            type_en=animal.type_en,
+            type_jp=animal.type_jp,
+            name=animal.name,
+            abilities=list(animal.get_all_ability().keys())
         ) for animal in added_animals
     ]
 
@@ -81,8 +85,10 @@ def remove_animal(id: int):
 
     return schemas.AnimalResponse(
         id=removed_animal.id,
-        type=removed_animal.type_en,
-        name=removed_animal.name
+        type_en=removed_animal.type_en,
+        type_jp=removed_animal.type_jp,
+        name=removed_animal.name,
+        abilities=list(removed_animal.get_all_ability().keys())
     )
 
 @app.patch(
@@ -108,7 +114,8 @@ def edit_animal(id: int, req: schemas.AnimalEdit):
         raise HTTPException(status_code=500, detail="データの保存に失敗しました")
     return schemas.AnimalDetail(
         id=target_animal.id,
-        type=target_animal.type_en,
+        type_en=target_animal.type_en,
+        type_jp=target_animal.type_jp,
         name=target_animal.name,
         abilities=target_animal.get_all_ability()
     )
@@ -140,7 +147,8 @@ def get_animal(id: int):
         animal = manager.get_animal(id)
         return schemas.AnimalDetail(
             id=animal.id,
-            type=animal.type_en,
+            type_en=animal.type_en,
+            type_jp=animal.type_jp,
             name=animal.name,
             abilities=animal.get_all_ability()
         )
@@ -195,8 +203,10 @@ def get_animals(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keywor
     return [
         schemas.AnimalResponse(
             id=animal.id,
-            type=animal.type_en,
-            name=animal.name
+            type_en=animal.type_en,
+            type_jp=animal.type_jp,
+            name=animal.name,
+            abilities=list(animal.get_all_ability().keys())
         ) for animal in animals
     ]
 

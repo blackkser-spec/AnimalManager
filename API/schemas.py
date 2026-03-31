@@ -15,8 +15,10 @@ class Animal(BaseModel):
 
 class AnimalResponse(BaseModel):
     id: int
-    type: str
+    type_en: str
+    type_jp: str
     name: str
+    abilities: list[str] = []
 
 class AnimalEdit(BaseModel):
     type: AnimalTypes | None = None

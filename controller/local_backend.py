@@ -1,7 +1,11 @@
-from controller.base import BaseController
 from tkinter import messagebox
+from .dto import AnimalDTO
 
-class LocalController(BaseController):
+class LocalBackend:
+    def __init__(self, layout, manager):
+        self.layout = layout
+        self.manager = manager
+
     def execute_add(self, animal_type, name):
         try:
             self.manager.add_animal(animal_type, name)
@@ -42,6 +46,20 @@ class LocalController(BaseController):
     
     def is_valid_action(self, choice):
         return choice in self.manager.ALLOWED_ACTIONS
+    
+    def execute_search(self, attribute, keyword):
+        animals = self.manager.search_animal(attribute, keyword)
+        return [self._to_dto(a) for a in animals]
+
+    def _to_dto(self, animal):
+        """AnimalインスタンスをAnimalDTOに変換"""
+        return AnimalDTO(
+            id=animal.id,
+            name=animal.name,
+            type_en=animal.type_en,
+            type_jp=animal.type_jp,
+            abilities=list(animal.get_all_ability().keys())
+        )
 
     def save(self):
         self.manager.save_to_file()

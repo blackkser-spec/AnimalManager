@@ -1,6 +1,6 @@
 import tkinter   as tk
 from tkinter import ttk
-from controller.base import BaseController
+from controller.controller import Controller
 from core.manager import AnimalManager
 
 class Layout:
@@ -13,7 +13,7 @@ class Layout:
         # Managerはローカル/APIどちらでも必要（型の定義やキャッシュとして利用可能）
         from core.storage import JsonStorage  #これは何か
         self.manager = AnimalManager(JsonStorage("data/animals.json"))
-        self.ctrl = BaseController(self, self.manager)
+        self.ctrl = Controller(self, self.manager)
         if not self.ctrl:
             root.destroy()
             return

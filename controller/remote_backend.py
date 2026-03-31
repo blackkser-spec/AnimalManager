@@ -1,9 +1,10 @@
 import requests
-from controller.base import BaseController
+from .dto import AnimalDTO
 
-class RemoteController(BaseController):
+class RemoteBackend:
     def __init__(self, layout, manager):
-        super().__init__(layout, manager)
+        self.layout = layout
+        self.manager = manager
         self.base_url = "http://127.0.0.1:8080"
         self.session = requests.Session()
 
@@ -60,6 +61,25 @@ class RemoteController(BaseController):
     
     def is_valid_action(self, choice):
         return choice in self.manager.ALLOWED_ACTIONS
+    
+    def execute_search(self, attribute, keyword):
+        try:
+            response = self.session.get(f"{self.base_url}/animals?search_attr={attribute}&keyword={keyword}", timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            return [self._to_dto(item) for item in data]
+        except Exception as e:
+            raise Exception(f"通信エラー{e}")
+
+    def _to_dto(self, item):
+        """JSON辞書をAnimalDTOに変換"""
+        return AnimalDTO(
+            id=item.get("id", 0),
+            name=item.get("name", "Unknown"),
+            type_en=item.get("type_en", "unknown"),
+            type_jp=item.get("type_jp", "不明"),
+            abilities=item.get("abilities", [])
+        )
 
     def save(self):
         return "APIモードは自動保存の為 この機能は制限されています"
