@@ -5,18 +5,6 @@ class AnimalNotFoundError(Exception):
     pass
 
 class AnimalManager:
-    AVAILABLE_ANIMAL_TYPES = {
-        "bird":animal.Bird,
-        "cat" :animal.Cat,
-        "dog" :animal.Dog,
-        "duck":animal.Duck,
-        "fish":animal.Fish,
-        "penguin":animal.Penguin
-        }
-    AVAILABLE_ABILITIES = {
-        "fly" :{"msg":"空を飛んでいる"},
-        "swim":{"msg":"水中を泳いでいる"},
-        }
     SEARCH_MAP = {
         "ID": lambda a: [str(a.id)],
         "種類": lambda a: [(a.type_en or "").lower(), (a.type_jp or "")],  
@@ -26,22 +14,21 @@ class AnimalManager:
     ALLOWED_SORT_KEYS = {"id", "type_en", "type_jp", "name"}
     ALLOWED_ACTIONS = {"voice", "fly", "swim"}
     
-    def __init__(self, storage):
-        self.storage      = storage
+    def __init__(self, repository):
+        self.repository      = repository
         self.id_counter   = 1
-        self.naming_count = {key: 0 for key in self.AVAILABLE_ANIMAL_TYPES}
+        self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self.animals      = {}
         self.initial_state_data = self._get_serializable_data()
 
     def _get_serializable_data(self):
         """現在のマネージャの状態を辞書形式で取得する"""
         animal_list = []
-        for animal in self.animals.values():
-            animal_list.append(animal.to_dict())
+        for a in self.animals.values():
+            animal_list.append(a.to_dict())
         return {"id_counter": self.id_counter, "naming_count": self.naming_count, "animals": animal_list}
 
     def is_changed(self):
-        """初期状態から変更があったかどうかを判定する"""
         return self.initial_state_data != self._get_serializable_data()
     
     # --- get method ---
@@ -56,13 +43,13 @@ class AnimalManager:
         return sorted(self.animals.values(), key=lambda x: x.id)    
 
     def get_available_animal_types(self):
-        return list(self.AVAILABLE_ANIMAL_TYPES.keys())
+        return list(animal.AVAILABLE_ANIMAL_TYPES.keys())
 
     def get_available_abilities(self):
-        return list(self.AVAILABLE_ABILITIES.keys())
-        
+        return list(animal.AVAILABLE_ABILITIES.keys())
+
     def add_animal(self, animal_type, name):
-        target = self.AVAILABLE_ANIMAL_TYPES.get(animal_type)
+        target = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
         if target is None:
             raise ValueError("無効な種類の動物です")
         if len(name) > 20:
@@ -76,33 +63,29 @@ class AnimalManager:
 
     def add_random_animal(self, count):
         if not isinstance(count, int):
-            try:
-                count = int(count)
-            except (ValueError, TypeError):
-                raise ValueError("追加回数は整数で指定してください")
+            raise ValueError("追加回数は整数で指定してください")
         if count <= 0:
             raise ValueError("追加回数は1以上を指定してください")
+        
         added_animals = []
         for _ in range(count):
-            animal_type = random.choice(list(self.AVAILABLE_ANIMAL_TYPES.keys()))
+            animal_type = random.choice(list(animal.AVAILABLE_ANIMAL_TYPES.keys()))
             self.naming_count[animal_type] += 1
             name   = f"{animal_type}{self.naming_count[animal_type]}"
             added_animals.append(self.add_animal(animal_type, name))
         return added_animals
-    
 
     def remove_animal(self, animal_id):
         self.get_animal(animal_id)
         return self.animals.pop(animal_id)
-    
 
     def edit_animal_type(self, animal_id, new_type):
         target_animal = self.get_animal(animal_id)
         
-        if new_type not in self.AVAILABLE_ANIMAL_TYPES:
+        if new_type not in animal.AVAILABLE_ANIMAL_TYPES:
             raise ValueError("無効な種類の動物です")
 
-        cls = self.AVAILABLE_ANIMAL_TYPES[new_type]
+        cls = animal.AVAILABLE_ANIMAL_TYPES[new_type]
         new_animal = cls(target_animal.id, target_animal.name)
         new_animal.ex_ability = target_animal.ex_ability
         self.animals[target_animal.id] = new_animal
@@ -120,33 +103,29 @@ class AnimalManager:
 
     def edit_animal_ability(self, animal_id, new_ability):
         target_animal = self.get_animal(animal_id)
-        if new_ability not in self.AVAILABLE_ABILITIES:
+        if new_ability not in animal.AVAILABLE_ABILITIES:
             raise ValueError("無効な特技です")
             
-        target_animal.ex_ability[new_ability] = dict(self.AVAILABLE_ABILITIES[new_ability])
+        target_animal.ex_ability[new_ability] = dict(animal.AVAILABLE_ABILITIES[new_ability])
         return target_animal
 
     def act_animal(self, action_name):
         """指定された行動を、可能な全ての動物に実行させる"""
-        # action_name は "voice", "fly", "swim" など、直接的なメソッド名
         if not action_name:
             return []
         if action_name not in self.ALLOWED_ACTIONS:
              raise ValueError(f"無効なアクションです: {action_name}")
 
-        # 特定の行動に必要な能力をマッピング
-        ability_map = {
-            "fly": "fly",
-            "swim": "swim"
-        }
-        required_ability = ability_map.get(action_name)
+        # アクション名が AVAILABLE_ABILITIES に存在すれば、それを必須特技とする
+        # voice などの基本アクションは required_ability が None になる
+        required_ability = action_name if action_name in animal.AVAILABLE_ABILITIES else None
 
         results = [] 
-        for animal in self.animals.values():
+        for a in self.animals.values():
             # 必要な能力を持っているか、または能力が不要な行動（voiceなど）かを確認
-            if required_ability is None or animal.has_ability(required_ability):
-                if hasattr(animal, action_name):
-                    method = getattr(animal, action_name) 
+            if required_ability is None or a.has_ability(required_ability):
+                if hasattr(a, action_name):
+                    method = getattr(a, action_name) 
                     result = method()
                     if result:
                         results.append(result)
@@ -160,7 +139,7 @@ class AnimalManager:
     def data_clear(self):
         self.animals.clear()
         self.id_counter   = 1
-        self.naming_count = {key: 0 for key in self.AVAILABLE_ANIMAL_TYPES}
+        self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self.initial_state_data = self._get_serializable_data()
 
     def search_animal(self, attr, keyword):
@@ -173,49 +152,52 @@ class AnimalManager:
 
         keyword = keyword.lower()
         results = []
-        for animal in self.animals.values():
+        for a in self.animals.values():
             if attr == "すべて":
                 values = []
                 for getter in self.SEARCH_MAP.values():
-                    values.extend(getter(animal))
+                    values.extend(getter(a))
             else:
                 getter = self.SEARCH_MAP.get(attr)
-                values = getter(animal)
+                values = getter(a)
             if any(keyword in str(v).lower() for v in values):
-                results.append(animal)
+                results.append(a)
                 
         return sorted(results, key=lambda x: x.id)
 
     def save_to_file(self):
         data = self._get_serializable_data()
-        if self.storage.save(data):
+        if self.repository.save(data):
             # 保存が成功したら、現在の状態を新しい「未変更」状態とする
             self.initial_state_data = self._get_serializable_data()
             return True
         return False
 
     def load_from_file(self):
-        # ロード前に現在のデータをクリアする（重複防止）
-        self.animals.clear()
-        
-        data = self.storage.load()
+        data = self.repository.load()
         if data is None:
             return False
 
-        self.id_counter   = data.get("id_counter",1)
-        loaded_count      = data.get("naming_count", {})
+        self.animals.clear()
+        self._restore_counters(data)
+        self._restore_animals(data.get("animals", []))
+        # ロードが成功したら、現在の状態を新しい「未変更」状態とする
+        self.initial_state_data = self._get_serializable_data()
+        return True
+
+    def _restore_counters(self, data):
+        self.id_counter = data.get("id_counter", 1)
+        loaded_count = data.get("naming_count", {})
         for key in self.naming_count:
             if key in loaded_count:
                 self.naming_count[key] = loaded_count[key]
 
-        for item in data.get("animals",[]):
-            animal_type = item["type_en"]
-            cls = self.AVAILABLE_ANIMAL_TYPES.get(animal_type)
+    def _restore_animals(self, animal_data_list):
+        for item in animal_data_list:
+            animal_type = item.get("type_en")
+            if not animal_type:
+                continue
+
+            cls = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
             if cls:
-                animal = cls(item["id"],item["name"])
-                animal.ex_ability = dict(item.get("ex_ability",{}))
-                self.animals[item["id"]] = animal
-        
-        # ロードが成功したら、現在の状態を新しい「未変更」状態とする
-        self.initial_state_data = self._get_serializable_data()
-        return True
+                self.animals[item["id"]] = cls.from_dict(item)

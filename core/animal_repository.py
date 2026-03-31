@@ -1,7 +1,7 @@
 import json
 import os
 
-class JsonStorage:
+class AnimalRepository:
     def __init__(self, file_path):
         self.file_path = file_path
 
@@ -25,7 +25,6 @@ class JsonStorage:
             return None
         except json.JSONDecodeError:
             try:
-                # 拡張子を維持したままファイル名を変更
                 base, ext = os.path.splitext(self.file_path)
                 os.rename(self.file_path, f"{base}_broken{ext}")
             except:

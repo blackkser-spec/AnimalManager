@@ -223,6 +223,7 @@ class CliCommand:
 
     def exit_manager(self):        
         self.manager.save_to_file()
+        self.menu_printer.print_success("AnimalManagerを終了します")
         return True
 
     # --- 入力処理共通化/ヘルパーメソッド ---

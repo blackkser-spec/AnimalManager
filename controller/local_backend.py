@@ -54,11 +54,11 @@ class LocalBackend:
     def _to_dto(self, animal):
         """AnimalインスタンスをAnimalDTOに変換"""
         return AnimalDTO(
-            id=animal.id,
-            name=animal.name,
-            type_en=animal.type_en,
-            type_jp=animal.type_jp,
-            abilities=list(animal.get_all_ability().keys())
+            id       = animal.id,
+            name     = animal.name,
+            type_en  = animal.type_en,
+            type_jp  = animal.type_jp,
+            abilities= list(animal.get_all_ability().keys())
         )
 
     def save(self):

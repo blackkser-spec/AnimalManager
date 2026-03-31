@@ -74,11 +74,11 @@ class RemoteBackend:
     def _to_dto(self, item):
         """JSON辞書をAnimalDTOに変換"""
         return AnimalDTO(
-            id=item.get("id", 0),
-            name=item.get("name", "Unknown"),
-            type_en=item.get("type_en", "unknown"),
-            type_jp=item.get("type_jp", "不明"),
-            abilities=item.get("abilities", [])
+            id       = item.get("id", 0),
+            name     = item.get("name", "Unknown"),
+            type_en  = item.get("type_en", "unknown"),
+            type_jp  = item.get("type_jp", "不明"),
+            abilities= list(item.get("abilities", {}).keys())
         )
 
     def save(self):

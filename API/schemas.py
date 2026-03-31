@@ -13,12 +13,16 @@ class Animal(BaseModel):
     type: str
     name: str
 
-class AnimalResponse(BaseModel):
-    id: int
-    type_en: str
-    type_jp: str
+class AnimalResult(BaseModel):
+    id  : int
     name: str
-    abilities: list[str] = []
+
+class AnimalDetail(BaseModel):
+    id       : int
+    type_en  : str
+    type_jp  : str
+    name     : str
+    abilities: dict = {}
 
 class AnimalEdit(BaseModel):
     type: AnimalTypes | None = None
@@ -33,15 +37,12 @@ class SearchAttr(str, Enum):
     ability = "特技"
 
 class SortAttr(str, Enum):
-    id = "ID"
+    id      = "ID"
     type_en = "種類:英語"
     type_jp = "種類:日本語"
-    name = "名前"
+    name    = "名前"
 
 class AbilityType(str, Enum):
     voice = "voice"
     fly   = "fly"
     swim  = "swim"
-
-class AnimalDetail(AnimalResponse):
-    abilities: dict

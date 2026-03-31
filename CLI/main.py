@@ -1,11 +1,11 @@
 from CLI import menu_printer
 from core.manager import AnimalManager
-from core.storage import JsonStorage
+from core.animal_repository import AnimalRepository
 from CLI.cli_command import CliCommand
 
 
 def main():
-    storage = JsonStorage("data/animals.json")
+    storage = AnimalRepository("data/animals.json")
     manager = AnimalManager(storage)
     command = CliCommand(manager)
     manager.load_from_file()

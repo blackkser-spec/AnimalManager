@@ -11,8 +11,8 @@ class Layout:
             return
         
         # Managerはローカル/APIどちらでも必要（型の定義やキャッシュとして利用可能）
-        from core.storage import JsonStorage  #これは何か
-        self.manager = AnimalManager(JsonStorage("data/animals.json"))
+        from core.animal_repository import AnimalRepository  #これは何か
+        self.manager = AnimalManager(AnimalRepository("data/animals.json"))
         self.ctrl = Controller(self, self.manager)
         if not self.ctrl:
             root.destroy()

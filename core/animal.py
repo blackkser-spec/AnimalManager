@@ -17,6 +17,12 @@ class Animal:
             "ex_ability": self.ex_ability
         }
 
+    @classmethod
+    def from_dict(cls, data):
+        instance = cls(data["id"], data["name"])
+        instance.ex_ability = dict(data.get("ex_ability", {}))
+        return instance
+
     def get_all_ability(self):
         combined = dict(self.ability)
         combined.update(self.ex_ability)
@@ -75,3 +81,21 @@ class Penguin(Animal):
         super().__init__(id, name, type_en="penguin", type_jp="ペンギン",
                          ability={"swim":{"msg":"水中を泳いでいる"}},
                          voice_msg="ぷーぷーと鳴いた")
+
+AVAILABLE_ANIMAL_TYPES = {
+    "bird": Bird,
+    "cat": Cat,
+    "dog": Dog,
+    "duck": Duck,
+    "fish": Fish,
+    "penguin": Penguin,
+}
+
+# システムがサポートする特技の定義
+AVAILABLE_ABILITIES = {
+    "fly": {"msg": "空を飛んでいる"},
+    "swim": {"msg": "水中を泳いでいる"},
+}
+
+class AnimalNotFoundError(Exception):
+    pass
