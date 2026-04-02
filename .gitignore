@@ -10,8 +10,5 @@ __pycache__/
 # Extraction Tools
 utils/extract_definitions.py
 
-# Test Tools
-tests
-
 # OS metadata
 .DS_Store

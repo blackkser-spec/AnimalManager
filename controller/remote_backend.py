@@ -94,4 +94,3 @@ class RemoteBackend:
     
     def has_unsaved_changes(self):
         return False
-        

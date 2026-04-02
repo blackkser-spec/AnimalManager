@@ -1,5 +1,5 @@
 {
-    "id_counter": 4,
+    "id_counter": 2,
     "naming_count": {
         "bird": 0,
         "cat": 0,
@@ -11,23 +11,9 @@
     "animals": [
         {
             "id": 1,
-            "name": "APIばーど",
-            "type_en": "bird",
-            "type_jp": "鳥",
-            "ex_ability": {}
-        },
-        {
-            "id": 2,
-            "name": "APIねこ",
-            "type_en": "cat",
-            "type_jp": "猫",
-            "ex_ability": {}
-        },
-        {
-            "id": 3,
-            "name": "testさかな",
-            "type_en": "fish",
-            "type_jp": "魚",
+            "name": "CLIだっくだっく",
+            "type_en": "duck",
+            "type_jp": "アヒル",
             "ex_ability": {}
         }
     ]

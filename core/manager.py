@@ -54,7 +54,7 @@ class AnimalManager:
             raise ValueError("無効な種類の動物です")
         if len(name) > 20:
             raise ValueError("名前は20文字以内で入力してください")
-        elif not name:
+        elif not name or not name.strip():
             raise ValueError("名前を空白にはできません")
         animal_instance = target(self.id_counter, name)
         self.animals[self.id_counter] = animal_instance
@@ -93,7 +93,7 @@ class AnimalManager:
     
     def edit_animal_name(self, animal_id, new_name):
         target_animal = self.get_animal(animal_id)
-        if not new_name:
+        if not new_name or not new_name.strip():
             raise ValueError("名前は空白にできません")
         if len(new_name) > 20:
             raise ValueError("名前は20文字以内で入力してください")
@@ -114,7 +114,7 @@ class AnimalManager:
         if not action_name:
             return []
         if action_name not in self.ALLOWED_ACTIONS:
-             raise ValueError(f"無効なアクションです: {action_name}")
+            raise ValueError(f"無効なアクションです: {action_name}")
 
         # アクション名が AVAILABLE_ABILITIES に存在すれば、それを必須特技とする
         # voice などの基本アクションは required_ability が None になる
