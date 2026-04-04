@@ -16,7 +16,7 @@ class AnimalManager:
     
     def __init__(self, repository):
         self.repository      = repository
-        self.id_counter   = 1
+        self.id_counter   = 0
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self.animals      = {}
         self.initial_state_data = self._get_serializable_data()
@@ -56,9 +56,10 @@ class AnimalManager:
             raise ValueError("名前は20文字以内で入力してください")
         elif not name or not name.strip():
             raise ValueError("名前を空白にはできません")
+        self.id_counter += 1
         animal_instance = target(self.id_counter, name)
         self.animals[self.id_counter] = animal_instance
-        self.id_counter += 1
+
         return animal_instance
 
     def add_random_animal(self, count):
@@ -138,7 +139,7 @@ class AnimalManager:
 
     def data_clear(self):
         self.animals.clear()
-        self.id_counter   = 1
+        self.id_counter   = 0
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self.initial_state_data = self._get_serializable_data()
 
@@ -186,7 +187,7 @@ class AnimalManager:
         return True
 
     def _restore_counters(self, data):
-        self.id_counter = data.get("id_counter", 1)
+        self.id_counter = data.get("id_counter", 0)
         loaded_count = data.get("naming_count", {})
         for key in self.naming_count:
             if key in loaded_count:
