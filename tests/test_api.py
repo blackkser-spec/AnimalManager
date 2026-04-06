@@ -18,11 +18,9 @@ def mock_api_storage():
     manager.data_clear()
     yield
 
-# テストコードをmanagerのメソッド順を参考に列挙していきます
-
 def test_get_animals_api(client):
-    """API経由で動物リストが取得できるかテストします。"""
     response = client.get("/animals")
+    
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
@@ -33,7 +31,6 @@ def test_get_animals_api(client):
     ("duck", "APIドナルド"),
 ])
 def test_add_animal_api(client, animal_type, name):
-    """API経由で動物を追加できるかテストします。"""
     payload = {"type": animal_type, "name": name}
     response = client.post("/animals", json=payload)
 
@@ -45,7 +42,7 @@ def test_add_animal_api(client, animal_type, name):
 def test_add_animal_api_error_handling(client):
     """
     APIがManagerの例外を適切に400ステータスに変換するかテストします。
-    詳細はManagerのテストで網羅しているため、ここでは代表1ケースのみ確認します。
+    バリデーションの詳細はManager側でテストされているため、ここでは境界線のみを確認します。
     """
     payload = {"type": "cat", "name": ""}
     response = client.post("/animals", json=payload)
@@ -53,13 +50,11 @@ def test_add_animal_api_error_handling(client):
     assert "名前を空白にはできません" in response.json()["detail"]
 
 def test_get_invalid_animal_api(client):
-    """存在しないIDを指定した時に404エラーが返るかテストします。"""
     response = client.get("/animals/999")
     assert response.status_code == 404
     assert "存在しません" in response.json()["detail"]
 
 def test_remove_animal_api(client):
-    """API経由で動物が正しく削除されることをテストします。"""
     payload = {"type": "cat", "name": "APIねこ"}
     post_response = client.post("/animals", json=payload)
     assert post_response.status_code == 201

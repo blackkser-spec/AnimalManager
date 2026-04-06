@@ -14,7 +14,6 @@ def manager(mock_repository):
     return AnimalManager(mock_repository)
 
 def test_add_animal(manager):
-    """動物が正しく追加され、IDが採番されることをテストします。"""
     animal = manager.add_animal("bird", "add_Bird")
     
     assert animal.name == "add_Bird"
@@ -28,9 +27,19 @@ def test_add_animal(manager):
     ("cat", "", "名前を空白にはできません"),
 ])
 def test_add_animal_error(manager, animal_type, name, expected_error):
-    """Managerレベルでのあらゆるバリデーションロジックを網羅します。"""
+    """
+    不正な入力に対するバリデーションが正しく機能するか。
+    このテストはManagerの安全性における中心的な役割を担います。
+    """
     with pytest.raises(ValueError, match=expected_error):
         manager.add_animal(animal_type, name)
+
+def test_add_animal_with_extreme_name(manager):
+    """
+    サロゲートペア（絵文字など）の扱いが気になったため追加。
+    """
+    animal = manager.add_animal("cat", "🐱🐱🐱")
+    assert animal.name == "🐱🐱🐱"
 
 def test_add_random_animal(manager):
     result = manager.add_random_animal(3)
@@ -54,19 +63,17 @@ def test_get_animal(manager):
     assert result.name == "get_Bird"
 
 def test_get_animal_not_found(manager):
-    """存在しないIDを指定したときに例外が発生するかテストします。"""
     with pytest.raises(AnimalNotFoundError):
         manager.get_animal(999)
 
-def test_get_all_animals(manager):
+def test_get_all_animals_returns_correct_count(manager):
     manager.add_random_animal(5)
     animals = manager.get_all_animals()
     assert len(animals) == 5
 
 def test_remove_animal(manager):
-    """動物の削除が正しく行われるかテストします。"""
-    manager.add_animal("cat", "remove_Cat")
-    manager.remove_animal(1)
+    animal = manager.add_animal("cat", "remove_Cat")
+    manager.remove_animal(animal.id)
     
     assert len(manager.animals) == 0
 
@@ -80,7 +87,7 @@ def test_edit_animal_type(manager):
     assert edited.type_jp == "猫"
 
 def test_edit_animal_type_preserves_ex_ability(manager):
-    """種類を変更しても、追加済みの特技が保持されることをテストします。"""
+    """種類を変更しても、習得済みの特技がリセットされないことを保証します。"""
     original = manager.add_animal("dog", "skill_dog")
     manager.edit_animal_ability(original.id, "fly")
     
@@ -145,11 +152,10 @@ def test_act_animal(manager, action, expected_count):
     assert len(results) == expected_count
 
 def test_act_animal_error(manager):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="無効なアクションです"):
         manager.act_animal("unknown")
 
 def test_search_animal(manager):
-    """検索ロジックが正しくフィルタリングを行うかテストします。"""
     manager.add_animal("cat", "search_cat")
 
     assert len(manager.search_animal("名前", "search")) == 1
@@ -196,6 +202,11 @@ def test_save_to_file(manager, mock_repository):
     result = manager.save_to_file()
     #Assert
     assert result == True
+    mock_repository.save.assert_called_once()
+
+def test_save_to_file_failed(manager, mock_repository):
+    mock_repository.save.return_value = False
+    assert manager.save_to_file() is False
     mock_repository.save.assert_called_once()
 
 def test_is_changed(manager):
@@ -245,6 +256,7 @@ def test_load_from_file(manager, mock_repository):
 def test_load_from_file_failed(manager, mock_repository):
     mock_repository.load.return_value = None
     assert manager.load_from_file() is False
+    assert manager.animals == {}
     mock_repository.load.assert_called_once()
 
 def test_full_load_flow(tmp_path):
