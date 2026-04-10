@@ -1,5 +1,5 @@
 {
-    "id_counter": 2,
+    "id_counter": 8,
     "naming_count": {
         "bird": 0,
         "cat": 0,
@@ -14,6 +14,20 @@
             "name": "CLIだっくだっく",
             "type_en": "duck",
             "type_jp": "アヒル",
+            "ex_ability": {}
+        },
+        {
+            "id": 5,
+            "name": "test",
+            "type_en": "bird",
+            "type_jp": "鳥",
+            "ex_ability": {}
+        },
+        {
+            "id": 8,
+            "name": "APIぺんぐいん",
+            "type_en": "penguin",
+            "type_jp": "ペンギン",
             "ex_ability": {}
         }
     ]

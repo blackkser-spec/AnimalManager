@@ -70,7 +70,6 @@ class Layout:
         # --- 検索バーエリア ---
         search_frame = tk.Frame(self.tr_frame, bg="#f0f0f0", pady=4)
         search_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
-
         # アイコンラベル
         tk.Label(search_frame, text="🔍", bg="#f0f0f0", fg="#555").pack(side=tk.LEFT, padx=(8, 2))
         # 検索ジャンル
@@ -88,8 +87,10 @@ class Layout:
         self.search_entry.bind("<Return>", lambda event: self.ctrl.search()) # Enterキーで実行
 
         # 実行ボタン & クリアボタン
-        tk.Button(search_frame, text="検索", command=self.ctrl.search, width=6, bg="#e1e1e1").pack(side=tk.LEFT, padx=2)
-        tk.Button(search_frame, text="×", command=self.ctrl.clear_search, width=3, bg="#ffdddd").pack(side=tk.LEFT, padx=(2, 8))
+        self.btn_search = tk.Button(search_frame, text="検索", command=self.ctrl.search, width=6, bg="#e1e1e1")
+        self.btn_search.pack(side=tk.LEFT, padx=2)
+        self.btn_clear = tk.Button(search_frame, text="×", command=self.ctrl.clear_search, width=3, bg="#ffdddd")
+        self.btn_clear.pack(side=tk.LEFT, padx=(2, 8))
 
         # --- Treeviewエリア ---
         columns = ("id", "type", "name")

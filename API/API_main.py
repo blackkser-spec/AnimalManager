@@ -147,37 +147,14 @@ def get_animal(id: int):
         )
     except AnimalNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
-
-@app.post(
-    "/system/reset",
-    summary="データリセット",
-    description="全てのデータを消去し初期状態に戻します")
-def reset_data():
-    manager.data_clear()
-    if not manager.save_to_file():
-        raise HTTPException(status_code=500, detail="データの保存に失敗しました")
-    return {"message": "Data has been reset successfully"}
-
-
-@app.get(
-    "/animals/act/{ability}",
-    response_model=list[str],
-    summary="動物の特技実行",
-    description="list内の動物に、指定した特技を実行させます"
-)
-def act_animal(ability: schemas.AbilityType):  #現状searchと大差ないため後ほど回収予定
-    try:
-        return manager.act_animal(ability.value)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+    
 @app.get(
     "/animals",
     response_model=list[schemas.AnimalDetail],
     summary="動物listの取得",
     description="検索条件(attr,keyword)を指定して、動物のリストを取得します"
 )
-def get_animals(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyword: str = None, sort_by: schemas.SortAttr = schemas.SortAttr.id):
+def search_animal(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyword: str = None, sort_by: schemas.SortAttr = schemas.SortAttr.id):
     """
     attr (Query Parameter): 検索対象の属性
     "すべて","ID", "種類", "名前", "特技" が指定可能
@@ -201,6 +178,29 @@ def get_animals(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keywor
             abilities=animal.get_all_ability()
         ) for animal in animals
     ]
+
+@app.get(
+    "/animals/act/{ability}",
+    response_model=list[str],
+    summary="動物の特技実行",
+    description="list内の動物に、指定した特技を実行させます"
+)
+def act_animal(ability: schemas.AbilityType):  #現状searchと大差ないため後ほど回収予定
+    try:
+        return manager.act_animal(ability.value)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post(
+    "/system/reset",
+    summary="データリセット",
+    description="全てのデータを消去し初期状態に戻します")
+def reset_data():
+    manager.data_clear()
+    if not manager.save_to_file():
+        raise HTTPException(status_code=500, detail="データの保存に失敗しました")
+    return {"message": "Data has been reset successfully"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

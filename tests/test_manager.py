@@ -13,11 +13,16 @@ def manager(mock_repository):
     """    テストごとに初期化されたAnimalManagerのインスタンスを提供します。    """
     return AnimalManager(mock_repository)
 
-def test_add_animal(manager):
-    animal = manager.add_animal("bird", "add_Bird")
+@pytest.mark.parametrize("animal_type, name", [
+    ("cat", "add_Cat"),
+    ("dog", "add_Dog"),
+    ("duck", "add_Duck"),
+])
+def test_add_animal(manager, animal_type, name):
+    animal = manager.add_animal(animal_type, name)
     
-    assert animal.name == "add_Bird"
-    assert animal.type_en == "bird"
+    assert animal.type_en == animal_type
+    assert animal.name == name
     assert 1 in manager.animals
     assert len(manager.animals) == 1
 

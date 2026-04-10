@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import messagebox
 from GUI.layout import Layout
 
 def select_mode():
