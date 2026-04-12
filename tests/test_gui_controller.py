@@ -243,6 +243,26 @@ class TestSearchAndSort:
             assert controller.sort_desc == False
 
 class TestDataManagement:
+    def test_load_success(self, controller, mock_layout):
+        # Arrange
+        mock_layout.log.return_value = None
+        controller.backend.execute_load.return_value = True
+        # Act
+        controller.load()
+        # Assert
+        controller.backend.execute_load.assert_called_once()
+        mock_layout.refresh_list.assert_called_once()
+
+    def test_load_failure(self, controller, mock_layout):
+        # Arrange
+        mock_layout.log.return_value = None
+        controller.backend.execute_load.side_effect = Exception
+        # Act
+        controller.load()
+        # Assert
+        controller.backend.execute_load.assert_called_once()
+        mock_layout.log.assert_called_once()
+
     def test_save_success(self, controller, mock_layout):
         # Arrange
         mock_layout.log.return_value = None

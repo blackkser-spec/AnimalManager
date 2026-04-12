@@ -15,11 +15,11 @@ class AnimalManager:
     ALLOWED_ACTIONS = {"voice", "fly", "swim"}
     
     def __init__(self, repository):
-        self.repository      = repository
-        self.id_counter   = 0
+        self.repository = repository
+        self.id_counter = 0
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
-        self.animals      = {}
-        self.initial_state_data = self._get_serializable_data()
+        self.animals = {}
+        self._refresh_initial_state()
 
     def _get_serializable_data(self):
         """現在のマネージャの状態を辞書形式で取得する"""
@@ -27,6 +27,9 @@ class AnimalManager:
         for a in self.animals.values():
             animal_list.append(a.to_dict())
         return {"id_counter": self.id_counter, "naming_count": self.naming_count, "animals": animal_list}
+
+    def _refresh_initial_state(self):
+        self.initial_state_data = self._get_serializable_data()
 
     def is_changed(self):
         return self.initial_state_data != self._get_serializable_data()
@@ -48,14 +51,17 @@ class AnimalManager:
     def get_available_abilities(self):
         return list(animal.AVAILABLE_ABILITIES.keys())
 
-    def add_animal(self, animal_type, name):
-        target = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
-        if target is None:
-            raise ValueError("無効な種類の動物です")
+    def _validate_name(self, name):
+        if not name or not name.strip():
+            raise ValueError("名前を空白にはできません")
         if len(name) > 20:
             raise ValueError("名前は20文字以内で入力してください")
-        elif not name or not name.strip():
-            raise ValueError("名前を空白にはできません")
+
+    def add_animal(self, animal_type, name):
+        target = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
+        if target is None: raise ValueError("無効な種類の動物です")
+        
+        self._validate_name(name)
         self.id_counter += 1
         animal_instance = target(self.id_counter, name)
         self.animals[self.id_counter] = animal_instance
@@ -79,8 +85,18 @@ class AnimalManager:
     def remove_animal(self, animal_id):
         self.get_animal(animal_id)
         return self.animals.pop(animal_id)
+    
+    def edit_animal(self, animal_id, attr, new_value):
+        edit_map = {
+            "type": self._edit_animal_type,
+            "name": self._edit_animal_name,
+            "ability": self._edit_animal_ability,
+        }
+        if attr not in edit_map:
+            raise ValueError("無効な属性です")
+        return edit_map[attr](animal_id, new_value)
 
-    def edit_animal_type(self, animal_id, new_type):
+    def _edit_animal_type(self, animal_id, new_type):
         target_animal = self.get_animal(animal_id)
         
         if new_type not in animal.AVAILABLE_ANIMAL_TYPES:
@@ -92,17 +108,13 @@ class AnimalManager:
         self.animals[target_animal.id] = new_animal
         return new_animal
     
-    def edit_animal_name(self, animal_id, new_name):
+    def _edit_animal_name(self, animal_id, new_name):
         target_animal = self.get_animal(animal_id)
-        if not new_name or not new_name.strip():
-            raise ValueError("名前は空白にできません")
-        if len(new_name) > 20:
-            raise ValueError("名前は20文字以内で入力してください")
-        
+        self._validate_name(new_name)
         target_animal.name = new_name
         return target_animal
 
-    def edit_animal_ability(self, animal_id, new_ability):
+    def _edit_animal_ability(self, animal_id, new_ability):
         target_animal = self.get_animal(animal_id)
         if new_ability not in animal.AVAILABLE_ABILITIES:
             raise ValueError("無効な特技です")
@@ -139,9 +151,9 @@ class AnimalManager:
 
     def data_clear(self):
         self.animals.clear()
-        self.id_counter   = 0
+        self.id_counter = 0
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
-        self.initial_state_data = self._get_serializable_data()
+        self._refresh_initial_state()
 
     def search_animal(self, attr, keyword):
         """キーワードと属性で動物を検索する"""
@@ -168,23 +180,18 @@ class AnimalManager:
 
     def save_to_file(self):
         data = self._get_serializable_data()
-        if self.repository.save(data):
-            # 保存が成功したら、現在の状態を新しい「未変更」状態とする
-            self.initial_state_data = self._get_serializable_data()
-            return True
-        return False
+        self.repository.save(data)
+        self._refresh_initial_state()
 
     def load_from_file(self):
         data = self.repository.load()
         if data is None:
-            return False
+            return
 
         self.animals.clear()
         self._restore_counters(data)
         self._restore_animals(data.get("animals", []))
-        # ロードが成功したら、現在の状態を新しい「未変更」状態とする
-        self.initial_state_data = self._get_serializable_data()
-        return True
+        self._refresh_initial_state()
 
     def _restore_counters(self, data):
         self.id_counter = data.get("id_counter", 0)

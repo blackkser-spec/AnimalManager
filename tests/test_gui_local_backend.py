@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from controller.local_backend import LocalBackend
-from controller.dto import AnimalDTO # DTOが必要になる可能性があるので追加
+from controller.dto import AnimalDTO
 
 @pytest.fixture
 def mock_layout():
@@ -73,7 +73,7 @@ class TestExecuteRemove:
     def test_failure(self, local_backend, mock_manager):
         # Arrange
         animal_id = 1
-        expected_error_msg = "ID:1 に該当する動物は存在しません"
+        expected_error_msg = f"ID:{animal_id} に該当する動物は存在しません"
         # Act & Assert
         mock_manager.remove_animal.side_effect = ValueError(expected_error_msg)
         with pytest.raises(ValueError, match=expected_error_msg):
@@ -82,25 +82,20 @@ class TestExecuteRemove:
 
 class TestExecuteEdit:
     @pytest.mark.parametrize(
-        "attr, new_value, expected_func",
+        "attr, new_value",
         [
-            ("type", "cat", "edit_animal_type"),
-            ("name", "Tama", "edit_animal_name"),
-            ("ability", "fly", "edit_animal_ability"),
+            ("type", "cat"),
+            ("name", "Tama"),
+            ("ability", "fly"),
         ]
     )
-    def test_success(self, local_backend, mock_manager, attr, new_value, expected_manager_func):
+    def test_success(self, local_backend, mock_manager, attr, new_value):
         # Arrange
         animal_id = 1
-
-        mock_manager.edit_animal_type.return_value = MagicMock(id=animal_id, type_en=new_value)
-        mock_manager.edit_animal_name.return_value = MagicMock(id=animal_id, name=new_value)
-        mock_manager.edit_animal_ability.return_value = MagicMock(id=animal_id, ex_ability={new_value: {}})
         # Act
         local_backend.execute_edit(animal_id, attr, new_value)
         # Assert
-        expected_mock_method = getattr(mock_manager, expected_manager_func)
-        expected_mock_method.assert_called_once_with(animal_id, new_value)
+        mock_manager.edit_animal.assert_called_once_with(animal_id, attr, new_value)
 
     @pytest.mark.parametrize(
         "attr, new_value, expected_error_msg",
@@ -113,12 +108,10 @@ class TestExecuteEdit:
     def test_failure_from_manager(self, local_backend, mock_manager, attr, new_value, expected_error_msg):
         # Arrange
         animal_id = 1
-        getattr(mock_manager, f"edit_animal_{attr}").side_effect = ValueError(expected_error_msg)
+        mock_manager.edit_animal.side_effect = ValueError(expected_error_msg)
         # Act & Assert
         with pytest.raises(ValueError, match=expected_error_msg):
             local_backend.execute_edit(animal_id, attr, new_value)
-        
-        getattr(mock_manager, f"edit_animal_{attr}").assert_called_once_with(animal_id, new_value)
 
     def test_failure_invalid_attr(self, local_backend, mock_manager):
         # Arrange
@@ -126,10 +119,116 @@ class TestExecuteEdit:
         attr = "invalid_attr"
         new_value = "some_value"
         expected_error_msg = "無効な属性です"
+        mock_manager.edit_animal.side_effect = ValueError(expected_error_msg)
         # Act & Assert
         with pytest.raises(ValueError, match=expected_error_msg):
             local_backend.execute_edit(animal_id, attr, new_value)
         
-        mock_manager.edit_animal_type.assert_not_called()
-        mock_manager.edit_animal_name.assert_not_called()
-        mock_manager.edit_animal_ability.assert_not_called()
+        mock_manager.edit_animal.assert_called_once_with(animal_id, attr, new_value)
+
+class TestExecuteAct:
+    def test_success(self, local_backend, mock_manager):
+        # Arrange
+        action_name = "voice"
+        expected_results = ["ニャアと鳴いた", "ワンワンと吠えた"]
+        mock_manager.act_animal.return_value = expected_results
+        # Act
+        results = local_backend.execute_act(action_name)
+        # Assert
+        mock_manager.act_animal.assert_called_once_with(action_name)
+        assert results == expected_results
+
+    def test_failure(self, local_backend, mock_manager):
+        # Arrange        
+        action_name = "invalid_action"
+        expected_msg = "無効なアクションです"
+        mock_manager.act_animal.side_effect = ValueError(expected_msg)
+        # Act & Assert
+        with pytest.raises(ValueError, match = expected_msg):
+            local_backend.execute_act(action_name)
+
+class TestIsValidAction:
+    @pytest.mark.parametrize("action, expected", [
+        ("voice", True),
+        ("fly", True),
+        ("invalid", False),
+    ])
+    def test_is_valid_action(self, local_backend, mock_manager, action, expected):
+        # Arrange
+        mock_manager.ALLOWED_ACTIONS = {"voice", "fly", "swim"}
+        # Act & Assert
+        assert local_backend.is_valid_action(action) == expected
+
+class TestExecuteSearch:
+    def test_success(self, local_backend, mock_manager):
+        # Arrange
+        attribute = "名前"
+        keyword = "tama"
+        animal = MagicMock(id=1,type_en="cat", type_jp="猫")
+        animal.name = "Tama"
+        animal.get_all_ability.return_value = {}
+        mock_manager.search_animal.return_value = [animal]
+
+        expected_dto = AnimalDTO(id=1, name="Tama", type_en="cat", type_jp="猫", abilities=[])
+        # Act
+        results = local_backend.execute_search(attribute, keyword)
+        # Assert
+        mock_manager.search_animal.assert_called_once_with("名前", "tama")
+        assert results == [expected_dto]
+
+    def test_failure(self, local_backend, mock_manager):
+        # Arrange
+        attribute = "invalid_attribute"
+        keyword = "some_keyword"
+        expected_error_msg = "無効な検索属性です"
+        mock_manager.search_animal.side_effect = ValueError(expected_error_msg)
+        # Act & Assert
+        with pytest.raises(ValueError, match = expected_error_msg):
+            local_backend.execute_search(attribute, keyword)
+    
+class TestSave:
+    def test_success(self, local_backend, mock_manager):
+        # Act
+        result = local_backend.save()
+        # Assert
+        mock_manager.save_to_file.assert_called_once()
+        assert result == "ローカルデータを保存しました"
+    
+    def test_failure(self, local_backend, mock_manager):
+        # Arrange
+        error_msg = "データの保存に失敗しました"
+        mock_manager.save_to_file.side_effect = IOError(error_msg)
+        # Act & Assert
+        with pytest.raises(IOError, match=error_msg):
+            local_backend.save()
+        mock_manager.save_to_file.assert_called_once()
+
+class TestDataClear:
+    def test_success(self, local_backend, mock_manager):
+        # Act
+        local_backend.data_clear()
+        # Assert
+        mock_manager.data_clear.assert_called_once()
+        mock_manager.save_to_file.assert_called_once()
+    
+    def test_failure(self, local_backend, mock_manager):
+        # Arrange
+        error_msg = "データの保存に失敗しました"
+        mock_manager.save_to_file.side_effect = IOError(error_msg)
+        # Act & Assert
+        with pytest.raises(IOError, match=error_msg):
+            local_backend.data_clear()
+
+        mock_manager.data_clear.assert_called_once()
+        mock_manager.save_to_file.assert_called_once()
+
+class TestHasUnsavedChanges:
+    @pytest.mark.parametrize("is_changed", [True, False])
+    def test_has_unsaved_changes(self, local_backend, mock_manager, is_changed):
+        # Arrange
+        mock_manager.is_changed.return_value = is_changed
+        # Act
+        result = local_backend.has_unsaved_changes()
+        # Assert
+        mock_manager.is_changed.assert_called_once()
+        assert result == is_changed

@@ -27,7 +27,7 @@ def mock_manager():
 
 class TestInitialization:
     def test_load_success(self, app):
-        app.manager.load_from_file.assert_called_once()
+        app.ctrl.load.assert_called_once()
 
     def test_initial_ui_state(self, app):
         assert app.root.title() == "Tkinter Test"

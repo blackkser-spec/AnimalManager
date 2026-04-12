@@ -1,0 +1,24 @@
+{
+    "id_counter": 2,
+    "naming_count": {
+        "bird": 0,
+        "cat": 0,
+        "dog": 0,
+        "duck": 0,
+        "fish": 0,
+        "penguin": 0
+    },
+    "animals": [
+        {
+            "id": 1,
+            "name": "API_cat",
+            "tpe_en": "cat",
+            "type_jp": "猫",
+            "ex_ability": {
+                "swim": {
+                    "msg": "水中を泳いでいる"
+                }
+            }
+        }
+    ]
+}

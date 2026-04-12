@@ -94,7 +94,7 @@ class CliCommand:
             return
 
         try:
-            self.manager.edit_animal_type(target_id, new_type)
+            self.manager.edit_animal(target_id, "type", new_type)
             self.menu_printer.print_success(f"{target_animal.name} の種類を {new_type} に更新しました")
             return True
         except ValueError as e:
@@ -108,7 +108,7 @@ class CliCommand:
             return
         old_name = target_animal.name
         try:
-            self.manager.edit_animal_name(target_id, new_name)
+            self.manager.edit_animal(target_id, "name", new_name)
             self.menu_printer.print_success(f"{old_name} の名前を {new_name} に更新しました")
             return True
         except ValueError as e:
@@ -126,7 +126,7 @@ class CliCommand:
         if new_ability is None:
             return
         try:
-            self.manager.edit_animal_ability(target_id, new_ability)
+            self.manager.edit_animal(target_id, "ability", new_ability)
             self.menu_printer.print_success(f"{target_animal.name} の特技を {new_ability} に更新しました")
             return True
         except ValueError as e:

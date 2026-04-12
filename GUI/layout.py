@@ -25,7 +25,7 @@ class Layout:
         self.root.protocol("WM_DELETE_WINDOW", self.ctrl.on_close)
         
         self.create_widgets()
-        self.manager.load_from_file()
+        self.ctrl.load()
         self.refresh_list()
 
     def create_widgets(self):

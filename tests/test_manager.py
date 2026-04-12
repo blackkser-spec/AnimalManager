@@ -84,7 +84,7 @@ def test_remove_animal(manager):
 
 def test_edit_animal_type(manager):
     original = manager.add_animal("bird","edit_Bird")
-    edited = manager.edit_animal_type(original.id, "cat")
+    edited = manager.edit_animal(original.id, "type", "cat")
 
     assert edited is not original
     assert edited.id == original.id
@@ -94,19 +94,19 @@ def test_edit_animal_type(manager):
 def test_edit_animal_type_preserves_ex_ability(manager):
     """種類を変更しても、習得済みの特技がリセットされないことを保証します。"""
     original = manager.add_animal("dog", "skill_dog")
-    manager.edit_animal_ability(original.id, "fly")
+    manager.edit_animal(original.id, "ability","fly")
     
-    edited = manager.edit_animal_type(original.id, "cat")
+    edited = manager.edit_animal(original.id,"type", "cat")
     assert "fly" in edited.get_all_ability()
 
 def test_edit_animal_type_error(manager):
     original = manager.add_animal("bird","edit_Bird")
     with pytest.raises(ValueError):
-        manager.edit_animal_type(original.id, "unknown")
+        manager.edit_animal(original.id, "type", "unknown")
 
 def test_edit_animal_name(manager):
     original = manager.add_animal("bird","edit_Bird")
-    edited = manager.edit_animal_name(original.id, "edited_Bird")
+    edited = manager.edit_animal(original.id, "name", "edited_Bird")
 
     assert edited is original
     assert edited.id == original.id
@@ -123,13 +123,13 @@ def test_edit_animal_name(manager):
 def test_edit_animal_name_error(manager, new_name, expected_disc):
     original = manager.add_animal("bird", "edit_Bird")
     with pytest.raises(ValueError, match=expected_disc):
-        manager.edit_animal_name(original.id, new_name)
+        manager.edit_animal(original.id, "name", new_name)
 
 def test_edit_animal_ability(manager):
     original = manager.add_animal("bird","edit_Bird")
     original_ability = original.get_all_ability().copy()
 
-    edited = manager.edit_animal_ability(original.id, "swim")
+    edited = manager.edit_animal(original.id, "ability", "swim")
     edited_ability = edited.get_all_ability()
 
     assert edited is original
@@ -142,7 +142,7 @@ def test_edit_animal_ability(manager):
 def test_edit_animal_ability_error(manager):
     original = manager.add_animal("bird","edit_Bird")
     with pytest.raises(ValueError):
-        manager.edit_animal_ability(original.id, "unknown")
+        manager.edit_animal(original.id, "ability","unknown")
 
 @pytest.mark.parametrize("action, expected_count", [
     ("voice", 2), # 両方鳴ける
@@ -204,16 +204,16 @@ def test_save_to_file(manager, mock_repository):
     manager.add_animal("bird", "save_Bird")
     mock_repository.save.return_value = True
     #Act
-    result = manager.save_to_file()
+    manager.save_to_file()
     #Assert
-    assert result == True
     mock_repository.save.assert_called_once()
 
 def test_save_to_file_failed(manager, mock_repository):
-    mock_repository.save.return_value = False
-    assert manager.save_to_file() is False
+    mock_repository.save.side_effect = IOError("ファイルの保存中にエラーが発生しました")
+    with pytest.raises(IOError, match="ファイルの保存中にエラーが発生しました"):
+        manager.save_to_file()
     mock_repository.save.assert_called_once()
-
+    
 def test_is_changed(manager):
     #Default
     assert manager.is_changed() == False
@@ -234,12 +234,12 @@ def test_is_changed_revert(manager):
     animal = manager.add_animal("dog", "original_name")
     manager.save_to_file() 
     #Act
-    manager.edit_animal_name(animal.id, "new_name")
-    manager.edit_animal_type(animal.id, "cat")
+    manager.edit_animal(animal.id, "name", "new_name")
+    manager.edit_animal(animal.id, "type", "cat")
     assert manager.is_changed() == True
     #revert
-    manager.edit_animal_name(animal.id, "original_name")
-    manager.edit_animal_type(animal.id, "dog")
+    manager.edit_animal(animal.id, "name", "original_name")
+    manager.edit_animal(animal.id, "type", "dog")
     #Assert
     assert manager.is_changed() == False
 
@@ -260,7 +260,7 @@ def test_load_from_file(manager, mock_repository):
 
 def test_load_from_file_failed(manager, mock_repository):
     mock_repository.load.return_value = None
-    assert manager.load_from_file() is False
+    manager.load_from_file() # 戻り値なし（エラーも起きない）
     assert manager.animals == {}
     mock_repository.load.assert_called_once()
 
@@ -272,7 +272,7 @@ def test_full_load_flow(tmp_path):
     #Act
     manager.add_random_animal(3)
     original_ids = [a.id for a in manager.get_all_animals()]
-    assert manager.save_to_file()
+    manager.save_to_file()
     manager.data_clear()
     assert len(manager.get_all_animals()) == 0
     #Assert

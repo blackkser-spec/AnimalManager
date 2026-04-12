@@ -7,38 +7,17 @@ class LocalBackend:
         self.manager = manager
 
     def execute_add(self, animal_type, name):
-        try:
-            self.manager.add_animal(animal_type, name)
-        except ValueError as e:
-            raise e
+        self.manager.add_animal(animal_type, name)
 
     def execute_add_random(self, count):
-        try:
-            self.manager.add_random_animal(count)
-        except ValueError as e:
-            raise e
+        self.manager.add_random_animal(count)
 
     def execute_remove(self, animal_id):
-        try:
-            removed_animal = self.manager.remove_animal(animal_id)
-            return {"id": removed_animal.id, "name": removed_animal.name}
-        except ValueError as e:
-            raise ValueError(str(e))
+        removed_animal = self.manager.remove_animal(animal_id)
+        return {"id": removed_animal.id, "name": removed_animal.name}
 
     def execute_edit(self, animal_id, attr, new_value):
-        edit_map = {
-            "type": self.manager.edit_animal_type,
-            "name": self.manager.edit_animal_name,
-            "ability": self.manager.edit_animal_ability,
-        }
-        try:
-            func = edit_map.get(attr)
-            if not func:
-                raise ValueError("無効な属性です")
-            func(animal_id, new_value)
-            
-        except ValueError as e:
-            raise e
+        self.manager.edit_animal(animal_id, attr, new_value)
 
     def execute_act(self, choice):
         results = self.manager.act_animal(choice)
@@ -60,6 +39,9 @@ class LocalBackend:
             type_jp  = animal.type_jp,
             abilities= list(animal.get_all_ability().keys())
         )
+
+    def execute_load(self):
+        self.manager.load_from_file()
 
     def save(self):
         self.manager.save_to_file()

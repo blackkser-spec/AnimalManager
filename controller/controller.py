@@ -122,6 +122,9 @@ class Controller:
         except Exception as e:
             self.layout.log(str(e))
 
+    def load(self):
+        self._handle_action(self.backend.execute_load, msg="データを読み込みました")
+
     def sort_tree(self, category):
         if self.last_sort_col == category:
             self.sort_desc = not self.sort_desc
@@ -140,17 +143,12 @@ class Controller:
             self.layout.log(str(e))
 
     def save(self):
-        try:
-            msg = self.backend.save()
-            self._post_action(window=None, msg=msg or "データを保存しました")
-        except Exception as e:
-            self.layout.log(f"保存失敗: {e}")
+        self._handle_action(self.backend.save, msg="データを保存しました")
 
     def data_clear(self):
         confirm = messagebox.askyesno("確認","本当にマネージャーのデータを消去しますか？")
         if confirm:
-            self.backend.data_clear()
-            self._post_action(window=None, msg="データを消去しました")
+            self._handle_action(self.backend.data_clear, msg="データを消去しました")
         else:
             self.layout.log("データ消去をキャンセルしました")
     

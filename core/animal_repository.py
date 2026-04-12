@@ -21,34 +21,37 @@ class AnimalRepository:
     def save(self, data):
         try:
             validated_data = StorageSchema.model_validate(data)
-
             directory = os.path.dirname(self.file_path)
             if directory:
                 os.makedirs(directory, exist_ok=True)
                 
             with open(self.file_path, "w", encoding="UTF-8") as f:
                 f.write(validated_data.model_dump_json(indent=4))
-            return True
-        except (IOError, ValidationError):
-            return False
+        except (ValidationError, TypeError):
+            raise ValueError("保存データの形式が正しくありません")
+        except OSError:
+            raise IOError("ファイルの書き込み権限がないか、ディスクがいっぱいです")
 
     def load(self):
         try:
             if not os.path.exists(self.file_path):
                 return None
 
-            with open(self.file_path, "r", encoding="UTF-8") as f:
-                raw_data = json.load(f)
-            
-            validated_data = StorageSchema.model_validate(raw_data)
-            return validated_data.model_dump()
-
-        except (FileNotFoundError, OSError):
-            return None
-        except (json.JSONDecodeError, ValidationError):
             try:
+                with open(self.file_path, "r", encoding="UTF-8") as f:
+                    raw_data = json.load(f)
+                
+                validated_data = StorageSchema.model_validate(raw_data)
+                return validated_data.model_dump()
+
+            except (json.JSONDecodeError, ValidationError) as e:
+                # 破損している場合はリネームして通知する（例外を投げる）
                 base, ext = os.path.splitext(self.file_path)
-                os.rename(self.file_path, f"{base}_broken{ext}")
-            except:
-                pass
-            return None
+                broken_path = f"{base}_broken{ext}"
+                os.rename(self.file_path, broken_path)
+                
+                reason = "JSONの記述ミス" if isinstance(e, json.JSONDecodeError) else "データの不整合"
+                raise ValueError(f"データファイル破損のため {broken_path} に退避しました ({reason})")
+
+        except OSError:
+            raise IOError("データファイルの読み込みに失敗しました（アクセス権限等）")

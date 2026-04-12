@@ -81,6 +81,9 @@ class RemoteBackend:
             abilities= list(item.get("abilities", {}).keys())
         )
 
+    def execute_load(self):
+        self.manager.load_from_file()
+
     def save(self):
         return "APIモードは自動保存の為 この機能は制限されています"
 
