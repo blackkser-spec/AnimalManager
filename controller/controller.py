@@ -9,7 +9,7 @@ class Controller:
 
         if layout.use_mode == "remote":
             from controller.remote_backend import RemoteBackend
-            self.backend = RemoteBackend(layout, manager)
+            self.backend = RemoteBackend(layout)
         elif layout.use_mode == "local":
             from controller.local_backend import LocalBackend
             self.backend = LocalBackend(layout, manager)
@@ -17,7 +17,8 @@ class Controller:
             self.backend = None
 
     def _post_action(self, window, msg):
-        self.layout.refresh_list()
+        # アクション後は常に最新のリストを取得して反映させる
+        self.load()
         if window:
             window.destroy()
         if msg:
@@ -122,9 +123,6 @@ class Controller:
         except Exception as e:
             self.layout.log(str(e))
 
-    def load(self):
-        self._handle_action(self.backend.execute_load, msg="データを読み込みました")
-
     def sort_tree(self, category):
         if self.last_sort_col == category:
             self.sort_desc = not self.sort_desc
@@ -141,6 +139,14 @@ class Controller:
             self.layout.refresh_list(animals)
         except Exception as e:
             self.layout.log(str(e))
+            
+    def load(self):
+        try:
+            # backendからデータを取得してレイアウトに渡す
+            results = self.backend.execute_load()
+            self.layout.refresh_list(results)
+        except Exception as e:
+            self.layout.log(f"読み込み失敗: {e}")
 
     def save(self):
         self._handle_action(self.backend.save, msg="データを保存しました")

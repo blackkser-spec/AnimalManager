@@ -24,6 +24,7 @@ def controller(mock_layout, mock_manager):
         # テストでBackendの呼び出しを検証するため、Mockに差し替える
         ctrl.backend = MagicMock()
         return ctrl
+    
 
 class TestInitialization:
     def test_controller_initialization(self, mock_layout, mock_manager):
@@ -39,6 +40,7 @@ class TestInitialization:
             Controller(mock_layout, mock_manager)
             mock_remote.assert_called_once()
 
+
 class TestNavigation:
     @pytest.mark.parametrize("method_name, layout_method", [
         ("add", "open_add_dialog"),
@@ -49,6 +51,7 @@ class TestNavigation:
         """引数なしでダイアログを開く単純なナビゲーションをまとめて検証"""
         getattr(controller, method_name)()
         getattr(mock_layout, layout_method).assert_called_once()
+
 
 class TestAdd:
     def test_execute_add_success(self, controller, mock_layout):
@@ -85,6 +88,7 @@ class TestAdd:
         mock_layout.refresh_list.assert_called_once()
         mock_layout.log.assert_called_with("3 回のランダム追加に成功しました")
 
+
 class TestRemove:
     def test_remove_no_selection(self, controller, mock_layout):
         """何も選択されていない場合に警告ログが出るか"""
@@ -113,6 +117,7 @@ class TestRemove:
         assert controller.backend.execute_remove.call_count == 2
         mock_layout.log.assert_any_call("削除完了: ID:10 Pochi")
         mock_layout.log.assert_any_call("削除完了: ID:20 Tama")
+
 
 class TestEdit:
     def test_edit_no_selection(self, controller, mock_layout):
@@ -156,6 +161,7 @@ class TestEdit:
         mock_layout.log.assert_called_once_with("編集項目を選択してください")
         controller.backend.execute_edit.assert_not_called()
 
+
 class TestAction:
     def test_execute_act_success(self, controller, mock_layout):
         # Arrange
@@ -179,6 +185,7 @@ class TestAction:
         # Assert
         mock_layout.log.assert_called_once_with("不正な行動です")
         controller.backend.execute_act.assert_not_called()
+
 
 class TestSearchAndSort:
     def test_search_integration(self, controller, mock_layout):
@@ -242,6 +249,7 @@ class TestSearchAndSort:
         else:
             assert controller.sort_desc == False
 
+
 class TestDataManagement:
     def test_load_success(self, controller, mock_layout):
         # Arrange
@@ -277,13 +285,12 @@ class TestDataManagement:
     def test_save_failure(self, controller, mock_layout):
         # Arrange
         mock_layout.log.return_value = None
-        controller.backend.save.side_effect = Exception
+        controller.backend.save.side_effect = ValueError("保存データの形式が正しくありません")
         # Act
         controller.save()
         # Assert
         controller.backend.save.assert_called_once()
-        mock_layout.log.assert_called_once()
-        assert "保存失敗" in mock_layout.log.call_args.args[0]
+        mock_layout.log.assert_called_once_with("保存データの形式が正しくありません")
         mock_layout.refresh_list.assert_not_called()
 
     def test_data_clear(self, controller, mock_layout):

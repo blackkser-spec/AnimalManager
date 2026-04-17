@@ -15,7 +15,7 @@ def mock_api_storage():
     テストごとにデータをリセットしてID競合を防ぎます。
     """
     manager.repository = MagicMock()
-    manager.data_clear()
+    manager.clear_data()
     yield
 
 @pytest.fixture
@@ -33,7 +33,7 @@ class TestAddAnimal:
 
     def test_error_save_failed(self, client):
         """追加時の保存失敗(500)のテスト"""
-        manager.repository.save.return_value = False
+        manager.repository.save.side_effect = IOError("Disk Full")
         payload = {"type": "cat", "name": "FailAnimal"}
         response = client.post("/animals", json=payload)
         assert response.status_code == 500
@@ -43,6 +43,7 @@ class TestAddAnimal:
         response = client.post("/animals", json=payload)
         assert response.status_code == 400
         assert "名前を空白にはできません" in response.json()["detail"]
+
 
 class TestAddRandomAnimal:
     def test_success(self, client):
@@ -59,6 +60,7 @@ class TestAddRandomAnimal:
         assert response.status_code == 400
         assert "1以上を指定してください" in response.json()["detail"]
 
+
 class TestRemoveAnimal:
     def test_success(self, client, sample_animal):
         response = client.delete(f"/animals/{sample_animal['id']}")
@@ -74,6 +76,7 @@ class TestRemoveAnimal:
         assert response.status_code == expected_status
         if expected_status == 404:
             assert "存在しません" in response.json()["detail"]
+
 
 class TestEditAnimal:
     def test_name_success(self, client, sample_animal):
@@ -99,6 +102,7 @@ class TestEditAnimal:
         response = client.patch(f"/animals/{animal_id}", json=payload)
         assert response.status_code == expected_status
 
+
 class TestActAnimal:
     def test_success_voice(self, client, sample_animal):
         response = client.get("/animals/act/voice")
@@ -111,6 +115,7 @@ class TestActAnimal:
     def test_error_invalid_ability(self, client):
         response = client.get("/animals/act/invalid")
         assert response.status_code == 422
+
 
 class TestGetAnimal:
     def test_get_detail_success(self, client, sample_animal):
@@ -127,17 +132,20 @@ class TestGetAnimal:
         assert response.status_code == 404
         assert "存在しません" in response.json()["detail"]
 
+
 class TestGetAvailableAnimalTypes:
     def test_success(self, client):
         response = client.get("/animals/types")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
+
 class TestGetAvailableAbilities:
     def test_success(self, client):
         response = client.get("/animals/abilities")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
+
 
 class TestSearchAnimal:
     def test_get_all(self, client):
@@ -157,19 +165,17 @@ class TestSearchAnimal:
         response = client.get("/animals", params={"sort_by": "名前"})
         names = [a["name"] for a in response.json()]
         assert names == sorted(names)
+        
 
-class TestResetData:
+class TestClearData:
     def test_success(self, client, sample_animal):
-        response = client.post("/system/reset")
+        response = client.post("/system/clear")
         assert response.status_code == 200
         assert response.json()["message"] == "Data has been reset successfully"
     
     def test_error(self, client):
-        """
-        保存失敗（リポジトリエラー等）を擬似的に発生させ、APIが500エラーを返せるかを検証。
-        """
-        manager.repository.save.return_value = False
-        response = client.post("/system/reset")
+        manager.repository.save.side_effect = IOError("Save failed")
+        response = client.post("/system/clear")
         assert response.status_code == 500
 
 if __name__ == "__main__":

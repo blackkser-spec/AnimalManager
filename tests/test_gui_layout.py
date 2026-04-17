@@ -35,6 +35,7 @@ class TestInitialization:
         assert isinstance(app.log_text, tk.Text)
         assert isinstance(app.search_entry, tk.Entry)
 
+
 class TestLeftPanel:
     @pytest.mark.parametrize("button_text, method_name", [
         ("動物追加", "add"),
@@ -56,6 +57,7 @@ class TestLeftPanel:
         assert target_button is not None, f"Button with text '{button_text}' not found"
         target_button.invoke()
         getattr(app.ctrl, method_name).assert_called_once()
+
 
 class TestSearchBar:
     def test_search_entry_return(self, app):
@@ -79,6 +81,7 @@ class TestSearchBar:
         
         app.search_attr.set("名前")
         assert app.search_attr.get() == "名前"
+
 
 class TestTreeView:
     def test_columns_setup(self, app):
@@ -123,6 +126,7 @@ class TestTreeView:
         app.ctrl.edit.assert_called_once()
         app.tree_menu.invoke(1) # 削除
         app.ctrl.remove.assert_called_once()
+        
 
 class TestUIUpdateLogic:
     def test_refresh_list(self, app):

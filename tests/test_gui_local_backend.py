@@ -37,6 +37,7 @@ class TestExecuteAdd:
         
         mock_manager.add_animal.assert_called_once_with(animal_type, name)
 
+
 class TestExecuteAddRandom:
     def test_success(self, local_backend, mock_manager):
         # Arrange
@@ -55,6 +56,7 @@ class TestExecuteAddRandom:
         with pytest.raises(ValueError, match=expected_error_msg):
             local_backend.execute_add_random(count)
         mock_manager.add_random_animal.assert_called_once_with(count)
+
 
 class TestExecuteRemove:
     def test_success(self, local_backend, mock_manager):
@@ -79,6 +81,7 @@ class TestExecuteRemove:
         with pytest.raises(ValueError, match=expected_error_msg):
             local_backend.execute_remove(animal_id)
         mock_manager.remove_animal.assert_called_once_with(animal_id)
+
 
 class TestExecuteEdit:
     @pytest.mark.parametrize(
@@ -126,6 +129,7 @@ class TestExecuteEdit:
         
         mock_manager.edit_animal.assert_called_once_with(animal_id, attr, new_value)
 
+
 class TestExecuteAct:
     def test_success(self, local_backend, mock_manager):
         # Arrange
@@ -147,6 +151,7 @@ class TestExecuteAct:
         with pytest.raises(ValueError, match = expected_msg):
             local_backend.execute_act(action_name)
 
+
 class TestIsValidAction:
     @pytest.mark.parametrize("action, expected", [
         ("voice", True),
@@ -158,6 +163,7 @@ class TestIsValidAction:
         mock_manager.ALLOWED_ACTIONS = {"voice", "fly", "swim"}
         # Act & Assert
         assert local_backend.is_valid_action(action) == expected
+
 
 class TestExecuteSearch:
     def test_success(self, local_backend, mock_manager):
@@ -185,7 +191,24 @@ class TestExecuteSearch:
         # Act & Assert
         with pytest.raises(ValueError, match = expected_error_msg):
             local_backend.execute_search(attribute, keyword)
-    
+
+class TestExecuteLoad:
+    def test_success(self, local_backend, mock_manager):
+        # Act
+        local_backend.execute_load()
+        # Assert & Assert
+        mock_manager.load_from_file.assert_called_once()
+
+    def test_failure(self, local_backend, mock_manager):
+        # Arrange
+        error_msg = "データの読み込みに失敗しました"
+        mock_manager.load_from_file.side_effect = IOError(error_msg)
+        # Act & Assert
+        with pytest.raises(IOError, match=error_msg):
+            local_backend.execute_load()
+        mock_manager.load_from_file.assert_called_once()
+
+
 class TestSave:
     def test_success(self, local_backend, mock_manager):
         # Act
@@ -203,12 +226,13 @@ class TestSave:
             local_backend.save()
         mock_manager.save_to_file.assert_called_once()
 
+
 class TestDataClear:
     def test_success(self, local_backend, mock_manager):
         # Act
-        local_backend.data_clear()
+        local_backend.clear_data()
         # Assert
-        mock_manager.data_clear.assert_called_once()
+        mock_manager.clear_data.assert_called_once()
         mock_manager.save_to_file.assert_called_once()
     
     def test_failure(self, local_backend, mock_manager):
@@ -217,10 +241,11 @@ class TestDataClear:
         mock_manager.save_to_file.side_effect = IOError(error_msg)
         # Act & Assert
         with pytest.raises(IOError, match=error_msg):
-            local_backend.data_clear()
+            local_backend.clear_data()
 
-        mock_manager.data_clear.assert_called_once()
+        mock_manager.clear_data.assert_called_once()
         mock_manager.save_to_file.assert_called_once()
+        
 
 class TestHasUnsavedChanges:
     @pytest.mark.parametrize("is_changed", [True, False])

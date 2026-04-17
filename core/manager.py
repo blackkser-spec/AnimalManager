@@ -149,7 +149,7 @@ class AnimalManager:
             raise ValueError(f"ソートできない属性です: {category}")
         return sorted(target_list, key=lambda a: getattr(a, category)) 
 
-    def data_clear(self):
+    def clear_data(self):
         self.animals.clear()
         self.id_counter = 0
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}

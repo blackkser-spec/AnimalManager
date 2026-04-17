@@ -2,18 +2,17 @@ import requests
 from .dto import AnimalDTO
 
 class RemoteBackend:
-    def __init__(self, layout, manager):
+    def __init__(self, layout):
         self.layout = layout
-        self.manager = manager
         self.base_url = "http://127.0.0.1:8080"
         self.session = requests.Session()
+
 
     def execute_add(self, animal_type, name):
         try:
             payload = {"type": animal_type, "name": name}
             response = self.session.post(f"{self.base_url}/animals", json=payload, timeout=5)
             response.raise_for_status()       
-            self.manager.load_from_file() 
 
         except Exception as e:
             raise Exception(f"通信エラー: {e}")
@@ -23,23 +22,16 @@ class RemoteBackend:
             payload = {"count": int(count)}
             response = self.session.post(f"{self.base_url}/animals/random", params=payload, timeout=5)
             response.raise_for_status()       
-            self.manager.load_from_file()
-            
         except Exception as e:
             raise Exception(f"通信エラー: {e}")
 
     def execute_remove(self, animal_id):
         try:
             response = self.session.delete(f"{self.base_url}/animals/{animal_id}", timeout=5)
-            
-            if response.status_code != 200:
-                error_detail = response.json().get("detail", "不明なエラー")
-                raise Exception(f"APIエラー: {error_detail}")
-            
+            response.raise_for_status()
             data = response.json()
-            self.manager.load_from_file() 
             return {"id": data["id"], "name": data["name"]}
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             raise Exception(f"通信エラー: {e}")
 
     def execute_edit(self, animal_id, attr, new_value):
@@ -47,7 +39,6 @@ class RemoteBackend:
             payload = {attr: new_value}
             response = self.session.patch(f"{self.base_url}/animals/{animal_id}", json=payload, timeout=5)
             response.raise_for_status()
-            self.manager.load_from_file()
         except Exception as e:
             raise Exception(f"通信エラー: {e}")
 
@@ -60,7 +51,9 @@ class RemoteBackend:
             raise Exception(f"通信エラー(行動実行): {e}")
     
     def is_valid_action(self, choice):
-        return choice in self.manager.ALLOWED_ACTIONS
+        # 将来的にAPI側から可能なアクションを取得するように拡張も可能
+        ALLOWED_ACTIONS = {"voice", "fly", "swim"}
+        return choice in ALLOWED_ACTIONS
     
     def execute_search(self, attribute, keyword):
         try:
@@ -69,7 +62,7 @@ class RemoteBackend:
             data = response.json()
             return [self._to_dto(item) for item in data]
         except Exception as e:
-            raise Exception(f"通信エラー{e}")
+            raise Exception(f"通信エラー: {e}")
 
     def _to_dto(self, item):
         """JSON辞書をAnimalDTOに変換"""
@@ -82,16 +75,15 @@ class RemoteBackend:
         )
 
     def execute_load(self):
-        self.manager.load_from_file()
-
+        return self.execute_search("すべて", "")
+        
     def save(self):
         return "APIモードは自動保存の為 この機能は制限されています"
 
-    def data_clear(self):
+    def clear_data(self):
         try:
             response = self.session.post(f"{self.base_url}/system/reset", timeout=5)
             response.raise_for_status()
-            self.manager.load_from_file()
         except Exception as e:
             raise Exception(f"通信エラー: {e}")
     

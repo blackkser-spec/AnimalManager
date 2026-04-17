@@ -1,0 +1,20 @@
+{
+    "id_counter": 1,
+    "naming_count": {
+        "bird": 0,
+        "cat": 0,
+        "dog": 0,
+        "duck": 0,
+        "fish": 0,
+        "penguin": 0
+    },
+    "animals": [
+        {
+            "id": 1,
+            "name": "cli_duck",
+            "type_en": "duck",
+            "type_jp": "アヒル",
+            "ex_ability": {}
+        }
+    ]
+}

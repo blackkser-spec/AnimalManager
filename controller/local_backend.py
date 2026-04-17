@@ -42,13 +42,14 @@ class LocalBackend:
 
     def execute_load(self):
         self.manager.load_from_file()
+        return [self._to_dto(a) for a in self.manager.get_all_animals()]
 
     def save(self):
         self.manager.save_to_file()
         return "ローカルデータを保存しました"
 
-    def data_clear(self):
-        self.manager.data_clear()
+    def clear_data(self):
+        self.manager.clear_data()
         self.manager.save_to_file()
 
     def has_unsaved_changes(self):

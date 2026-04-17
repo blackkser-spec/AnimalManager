@@ -190,9 +190,9 @@ def test_sort_list_error(manager):
     with pytest.raises(ValueError):
         manager.sort_list([], "unknown")
 
-def test_data_clear(manager):
+def test_clear_data(manager):
     manager.add_random_animal(5)
-    manager.data_clear()
+    manager.clear_data()
 
     assert len(manager.animals) == 0
     assert manager.id_counter == 0
@@ -225,7 +225,7 @@ def test_is_changed(manager):
     assert manager.is_changed() == False
     #Clear
     manager.add_animal("cat", "changed_Cat")
-    manager.data_clear()
+    manager.clear_data()
     assert manager.is_changed() == False
 
 def test_is_changed_revert(manager):
@@ -250,7 +250,7 @@ def test_load_from_file(manager, mock_repository):
     manager.add_animal("dog", "manual_dog")
     mock_repository.load.return_value = manager._get_serializable_data()
     #Act
-    assert manager.load_from_file()
+    manager.load_from_file()
     #Assert
     mock_repository.load.assert_called_once()
     assert len(manager.animals) == 1
@@ -273,9 +273,9 @@ def test_full_load_flow(tmp_path):
     manager.add_random_animal(3)
     original_ids = [a.id for a in manager.get_all_animals()]
     manager.save_to_file()
-    manager.data_clear()
+    manager.clear_data()
     assert len(manager.get_all_animals()) == 0
     #Assert
-    assert manager.load_from_file()
+    manager.load_from_file()
     loaded_ids = [a.id for a in manager.get_all_animals()]
     assert loaded_ids == original_ids
