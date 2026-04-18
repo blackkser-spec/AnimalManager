@@ -1,10 +1,15 @@
 from CLI import menu_printer
+from enum import Enum, auto
+
+class FlowResult(Enum):
+    TO_MAIN = auto()
+    TO_BACK = auto()
+    EXIT = auto()
 
 class CliController:
     def __init__(self, manager):
         self.manager = manager
         self.menu_printer = menu_printer
-
 
     # --- メインエントリーポイント (main.py から呼び出される主要フロー) ---
 
@@ -18,7 +23,7 @@ class CliController:
         try:
             while True:
                 result = self._execute_menu_loop(self.menu_printer.print_menu, actions, "実行する処理のindexを入力")
-                if result == "EXIT":
+                if result == FlowResult.EXIT:
                     break
         except IOError:
             pass
@@ -57,20 +62,21 @@ class CliController:
 
             attr = self._prompt_for_choice("検索項目をindexで入力", search_map, cancel_msg="検索を終了します")
             if attr is None:
-                return "TO_MAIN"
+                return FlowResult.TO_MAIN
 
             keyword = self._prompt_for_input("検索するキーワードを入力してください",
                                             cancel_msg="検索項目の選択に戻ります")
             if keyword is None:
-                continue  # 属性選択のループ先頭に戻る
+                continue
 
             try:
                 results = self.manager.search_animal(attr, keyword)
                 if results:
                     self.menu_printer.print_animal_list(results)
+                    self.menu_printer.print_success(f"{len(results)} 件の動物が見つかりました")
                 else:
                     self.menu_printer.print_error("検索結果が見つかりませんでした")
-                return "TO_MAIN"
+                return FlowResult.TO_MAIN
             except ValueError as e:
                 self.menu_printer.print_error(str(e))
                 continue
@@ -79,7 +85,7 @@ class CliController:
         try:
             self.manager.save_to_file()
             self.menu_printer.print_success("AnimalManagerを終了します")
-            return "EXIT"
+            return FlowResult.EXIT
         except IOError as e:
             self.menu_printer.print_error(str(e))
             raise
@@ -89,28 +95,28 @@ class CliController:
             print_func()
             action = self._prompt_for_choice(prompt, actions)
             if action is None:
-                return "TO_BACK"
+                return FlowResult.TO_BACK
 
             result = action()
-            if result in ("EXIT", "TO_MAIN"):
+            if result in (FlowResult.EXIT, FlowResult.TO_MAIN):
                 return result
 
 
-    # --- 個別のアクションフロー ---
+    # --- Manage Animal Actionフロー ---
 
     def add_animal_flow(self):
         animal_type = self._select_animal_type_flow("追加したい種類のindexまたは英名を入力")
         if animal_type is None:
             self.menu_printer.print_cancel("追加をキャンセルしました")
-            return "TO_BACK"
+            return FlowResult.TO_BACK
         prompt = f"{animal_type} につける名前を入力"
         name = self._prompt_for_input(prompt, cancel_msg="名前の入力をキャンセルしました")
         if not name:
-            return "TO_BACK"
+            return FlowResult.TO_BACK
         try:
             self.manager.add_animal(animal_type, name)
             self.menu_printer.print_success("動物を追加しました")
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
 
@@ -120,14 +126,14 @@ class CliController:
                                         validator=self._validate_positive_int)
         if count is None:
             self.menu_printer.print_cancel("追加をキャンセルしました")
-            return "TO_BACK"
+            return FlowResult.TO_BACK
 
         try:
             added_animals = self.manager.add_random_animal(count)
             self.menu_printer.print_success(f"ランダムに{count}回動物を追加しました")
             for animal in added_animals:
                 print(f"{animal.type_jp} の {animal.name} を追加しました")
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
 
@@ -136,11 +142,11 @@ class CliController:
             animal_id = self._select_animal_id_flow("削除したい動物のIDを入力")
             if animal_id is None:
                 self.menu_printer.print_cancel("削除をキャンセルしました")
-                return "TO_BACK"
+                return FlowResult.TO_BACK
 
             removed_animal = self.manager.remove_animal(animal_id)
             self.menu_printer.print_success(f"{removed_animal.name} を削除しました")
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
 
@@ -148,7 +154,7 @@ class CliController:
         target_id = self._select_animal_id_flow("変更したい動物のIDを入力", 
                                                 cancel_msg="属性の変更をキャンセルしました")
         if target_id is None:
-            return "TO_BACK"
+            return FlowResult.TO_BACK
 
         edit_flow_map = {
             "1": self.edit_type_flow,
@@ -160,7 +166,7 @@ class CliController:
                                             edit_flow_map, 
                                             cancel_msg="属性の変更をキャンセルしました")
         if selected_flow is None:
-            return "TO_BACK"
+            return FlowResult.TO_BACK
         return selected_flow(target_id)
 
     def edit_type_flow(self, target_id):
@@ -168,12 +174,12 @@ class CliController:
         prompt = f"ID:{target_id} {target_animal.name} の新しい種類を入力"
         new_type = self._select_animal_type_flow(prompt, cancel_msg="種類の変更をキャンセルしました")
         if new_type is None:
-            return "TO_BACK"
+            return FlowResult.TO_BACK
 
         try:
             self.manager.edit_animal(target_id, "type", new_type)
             self.menu_printer.print_success(f"{target_animal.name} の種類を {new_type} に更新しました") # type: ignore
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
 
@@ -182,12 +188,12 @@ class CliController:
         prompt = f"ID:{target_id} {target_animal.name} の新しい名前を入力"
         new_name = self._prompt_for_input(prompt, cancel_msg="名前の変更をキャンセルしました")
         if not new_name:
-            return "TO_BACK"
+            return FlowResult.TO_BACK
         old_name = target_animal.name
         try:
             self.manager.edit_animal(target_id, "name", new_name)
             self.menu_printer.print_success(f"{old_name} の名前を {new_name} に更新しました") # type: ignore
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
 
@@ -201,11 +207,11 @@ class CliController:
                                              validator=self._validate_ability, 
                                              cancel_msg="特技の変更をキャンセルしました")
         if new_ability is None:
-            return "TO_BACK"
+            return FlowResult.TO_BACK
         try:
             self.manager.edit_animal(target_id, "ability", new_ability)
             self.menu_printer.print_success(f"{target_animal.name} の特技を {new_ability} に更新しました") # type: ignore
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
 
@@ -215,23 +221,26 @@ class CliController:
                                              validator=self._validate_action)
         if action_name is None:
             self.menu_printer.print_cancel("行動をキャンセルしました")
-            return "TO_BACK"
+            return FlowResult.TO_BACK
 
         try:
             results = self.manager.act_animal(action_name)
             for result in results:
                 print(result)
-            return "TO_MAIN"
+            self.menu_printer.print_success(f"{len(results)} 件の行動を実行しました")
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
+
+    # --- Manage List Actionフロー ---
 
     def show_animal_list_flow(self):
         try:
             self.menu_printer.print_animal_list(self.manager.get_all_animals())
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
         except (ValueError, Exception) as e:
             self.menu_printer.print_error(f"リストの取得に失敗しました: {e}")
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
     
     def sort_list_flow(self):
         category_map = {
@@ -243,13 +252,14 @@ class CliController:
         category = self._prompt_for_choice("実行する処理のindexを入力", category_map)
         if category is None:
             self.menu_printer.print_cancel("ソートをキャンセルしました")
-            return "TO_BACK"
+            return FlowResult.TO_BACK
 
         try:
             target_list = self.manager.get_all_animals()
             sorted_list = self.manager.sort_list(target_list, category)
             self.menu_printer.print_animal_list(sorted_list) # type: ignore
-            return "TO_MAIN"
+            self.menu_printer.print_success(f"{category} 順にソートしました")
+            return FlowResult.TO_MAIN
         except ValueError as e:
             self.menu_printer.print_error(str(e))
         
@@ -259,11 +269,11 @@ class CliController:
         user_input = self._get_raw_input("> ")
         if user_input != "yes":
             self.menu_printer.print_cancel("データの消去をキャンセルしました")
-            return "TO_BACK"
+            return FlowResult.TO_BACK
         else:
             self.manager.clear_data()
             self.menu_printer.print_success("データを消去しました")
-            return "TO_MAIN"
+            return FlowResult.TO_MAIN
 
     # --- 入力処理共通化/ヘルパーメソッド ---
 

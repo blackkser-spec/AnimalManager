@@ -1,7 +1,7 @@
 import pytest
 import CLI.menu_printer
 from unittest.mock import MagicMock, patch
-from CLI.cli_controller import CliController
+from CLI.cli_controller import CliController, FlowResult
 
 @pytest.fixture
 def mock_manager():
@@ -155,7 +155,7 @@ class TestMenuFlows:
         # Arrange
         if flow_method == "main_menu":
             cli_controller._get_raw_input.side_effect = ["", "4"]
-            cli_controller.exit_manager = MagicMock(return_value="EXIT")
+            cli_controller.exit_manager = MagicMock(return_value=FlowResult.EXIT)
         else:
             cli_controller._get_raw_input.return_value = ""
         # Act
@@ -185,14 +185,14 @@ class TestMenuFlows:
         # Arrange
         mock_print = MagicMock()
         # 1回目は通常アクション、2回目は EXIT を返すアクション
-        action_normal = MagicMock(return_value="TO_BACK")
-        action_exit = MagicMock(return_value="EXIT")
+        action_normal = MagicMock(return_value=FlowResult.TO_BACK)
+        action_exit = MagicMock(return_value=FlowResult.EXIT)
         cli_controller._prompt_for_choice = MagicMock(side_effect=[action_normal, action_exit])
         
         # Act
         result = cli_controller._execute_menu_loop(mock_print, {}, "prompt")
         # Assert
-        assert result == "EXIT"
+        assert result == FlowResult.EXIT
 
     @pytest.mark.parametrize(
         "flow_method, choice, expected_sub_method", [
@@ -207,7 +207,7 @@ class TestMenuFlows:
         # Arrange
         assert hasattr(cli_controller, expected_sub_method)
         
-        mock_return_value = "EXIT" if expected_sub_method == "exit_manager" else "TO_MAIN"
+        mock_return_value = FlowResult.EXIT if expected_sub_method == "exit_manager" else FlowResult.TO_MAIN
         mock_action = MagicMock(return_value=mock_return_value)
         setattr(cli_controller, expected_sub_method, mock_action)
 
@@ -236,10 +236,12 @@ class TestSearchAnimalFlows:
         mock_manager.search_animal.return_value = mock_results
         cli_controller._get_raw_input.side_effect = [choice, "keyword"]
         # Act
-        cli_controller.search_animal_flow()
+        result = cli_controller.search_animal_flow()
         # Assert
+        assert result == FlowResult.TO_MAIN
         mock_manager.search_animal.assert_called_once_with(attr, "keyword")
         cli_controller.menu_printer.print_animal_list.assert_called_with(mock_results)
+        cli_controller.menu_printer.print_success.assert_called()
 
     def test_no_results(self, cli_controller, mock_manager):
         # Arrange
@@ -260,7 +262,7 @@ class TestExitManager:
         # Act
         result = cli_controller.exit_manager()
         # Assert
-        assert result == "EXIT"
+        assert result == FlowResult.EXIT
         cli_controller.manager.save_to_file.assert_called_once()
         cli_controller.menu_printer.print_success.assert_called_with("AnimalManagerを終了します")
     
@@ -282,9 +284,11 @@ class TestAddAnimalFlow:
         mock_manager.get_available_animal_types.return_value = ["cat"]
         cli_controller._get_raw_input.side_effect = ["cat", "Tama"]
         # Act
-        cli_controller.add_animal_flow()
+        result = cli_controller.add_animal_flow()
         # Assert
+        assert result == FlowResult.TO_MAIN
         mock_manager.add_animal.assert_called_once_with("cat", "Tama")
+        cli_controller.menu_printer.print_success.assert_called_with("動物を追加しました")
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
@@ -305,6 +309,7 @@ class TestAddRandomFlow:
         cli_controller.add_random_flow()
         # Assert
         mock_manager.add_random_animal.assert_called_once_with(3)
+        cli_controller.menu_printer.print_success.assert_called()
 
     def test_failure(self, cli_controller, mock_manager):
         cli_controller._get_raw_input.side_effect = ["abc", ""]
@@ -365,8 +370,8 @@ class TestEditAnimalFlow:
         cli_controller.edit_animal_attr_flow()
         # Assert
         mock_manager.edit_animal.assert_called_once_with(1, attr_key, new_value)
-        acutual_msg = cli_controller.menu_printer.print_success.call_args.args[0]
-        assert expected_msg_part in acutual_msg
+        actual_msg = cli_controller.menu_printer.print_success.call_args.args[0]
+        assert expected_msg_part in actual_msg
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
@@ -388,9 +393,11 @@ class TestActAnimalFlow:
         mock_manager.act_animal.return_value = [mock_animal]
         cli_controller._get_raw_input.return_value = "1"
         # Act
-        cli_controller.act_animal_flow()
+        result = cli_controller.act_animal_flow()
         # Assert
+        assert result == FlowResult.TO_MAIN
         mock_manager.act_animal.assert_called_once_with("voice")
+        cli_controller.menu_printer.print_success.assert_called()
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
@@ -441,6 +448,7 @@ class TestSortListFlow:
         mock_manager.get_all_animals.assert_called_once()
         mock_manager.sort_list.assert_called_once_with(mock_list, expected_category)
         cli_controller.menu_printer.print_animal_list.assert_called_once_with(sorted_mock_list)
+        cli_controller.menu_printer.print_success.assert_called()
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
@@ -459,27 +467,28 @@ class TestClearDataFlow:
         # Act
         result = cli_controller.clear_data_flow()
         # Assert
-        assert result == "TO_MAIN"
+        assert result == FlowResult.TO_MAIN
         mock_manager.clear_data.assert_called_once()
+        cli_controller.menu_printer.print_success.assert_called_with("データを消去しました")
 
 
 class TestFlowCancellations:
     """各フローにおけるキャンセル処理（未入力による中断）をまとめて検証"""
     @pytest.mark.parametrize("flow_method, inputs, expected_return", [
         # 基本的な 1 ステップ目でのキャンセル
-        ("add_animal_flow", [""], "TO_BACK"),
-        ("add_random_flow", [""], "TO_BACK"),
-        ("remove_animal_flow", [""], "TO_BACK"),
-        ("edit_animal_attr_flow", [""], "TO_BACK"),
-        ("act_animal_flow", [""], "TO_BACK"),
-        ("sort_list_flow", [""], "TO_BACK"),
-        ("search_animal_flow", [""], "TO_MAIN"),
-        ("clear_data_flow", ["no"], "TO_BACK"),
+        ("add_animal_flow", [""], FlowResult.TO_BACK),
+        ("add_random_flow", [""], FlowResult.TO_BACK),
+        ("remove_animal_flow", [""], FlowResult.TO_BACK),
+        ("edit_animal_attr_flow", [""], FlowResult.TO_BACK),
+        ("act_animal_flow", [""], FlowResult.TO_BACK),
+        ("sort_list_flow", [""], FlowResult.TO_BACK),
+        ("search_animal_flow", [""], FlowResult.TO_MAIN),
+        ("clear_data_flow", ["no"], FlowResult.TO_BACK),
         # 2 ステップ目以降でのキャンセル（深い階層からの復帰）
-        ("add_animal_flow", ["cat", ""], "TO_BACK"),
-        ("edit_animal_attr_flow", ["1", ""], "TO_BACK"),
-        ("edit_animal_attr_flow", ["1", "1", ""], "TO_BACK"),
-        ("search_animal_flow", ["1", "", ""], "TO_MAIN"),
+        ("add_animal_flow", ["cat", ""], FlowResult.TO_BACK),
+        ("edit_animal_attr_flow", ["1", ""], FlowResult.TO_BACK),
+        ("edit_animal_attr_flow", ["1", "1", ""], FlowResult.TO_BACK),
+        ("search_animal_flow", ["1", "", ""], FlowResult.TO_MAIN),
     ])
     def test_all_cancel_scenarios(self, cli_controller, mock_manager, flow_method, inputs, expected_return):
         # Arrange: どのフローが呼ばれてもバリデーションを通るように最小限のモックを設定

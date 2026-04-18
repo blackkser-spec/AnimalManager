@@ -1,9 +1,9 @@
 {
-    "id_counter": 1,
+    "id_counter": 3,
     "naming_count": {
         "bird": 0,
         "cat": 0,
-        "dog": 0,
+        "dog": 1,
         "duck": 0,
         "fish": 0,
         "penguin": 0
@@ -11,7 +11,14 @@
     "animals": [
         {
             "id": 1,
-            "name": "cli_duck",
+            "name": "cli_だっくだっく",
+            "type_en": "duck",
+            "type_jp": "アヒル",
+            "ex_ability": {}
+        },
+        {
+            "id": 2,
+            "name": "cli_どっぐ",
             "type_en": "duck",
             "type_jp": "アヒル",
             "ex_ability": {}
