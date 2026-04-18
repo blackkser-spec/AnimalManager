@@ -65,10 +65,10 @@ def print_search_choice():
 
 def print_confirm(message):
     """確認メッセージを表示"""
-    print(text.yellow(f"確認: {message}"))
+    print(text.yellow(f"CONFIRM: {message}"))
 
 def print_cancel(message):
-    print(text.yellow(f"キャンセル: {message}"))
+    print(text.yellow(f"CANCEL: {message}"))
 
 def print_success(message):
     """成功メッセージを表示"""

@@ -1,5 +1,4 @@
 import pytest
-import CLI.menu_printer
 from unittest.mock import MagicMock, patch
 from CLI.cli_controller import CliController, FlowResult
 
