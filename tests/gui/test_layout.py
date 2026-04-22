@@ -44,7 +44,7 @@ class TestLeftPanel:
         ("動物編集", "edit"),
         ("動物行動", "act"),
         ("データ保存", "save"),
-        ("データ消去", "data_clear"),
+        ("データ消去", "clear_data"),
     ])
     def test_tl_buttons_connection(self, app, button_text, method_name):
         """左パネルの各ボタンがControllerの対応するメソッドを正しく呼び出すか検証"""

@@ -5,6 +5,7 @@ class LocalBackend:
     def __init__(self, layout, manager):
         self.layout = layout
         self.manager = manager
+        self.manager.load_from_file()
 
     def execute_add(self, animal_type, name):
         self.manager.add_animal(animal_type, name)
@@ -41,7 +42,6 @@ class LocalBackend:
         )
 
     def execute_load(self):
-        self.manager.load_from_file()
         return [self._to_dto(a) for a in self.manager.get_all_animals()]
 
     def save(self):

@@ -30,7 +30,7 @@ class Controller:
             self._post_action(window, msg)
             return result
         except Exception as e:
-            self.layout.log(str(e))
+            self.layout.log(f"エラー発生: {type(e).__name__}: {str(e)}")
 
 
     def add(self):
@@ -91,7 +91,8 @@ class Controller:
         attr, getter = edit_map[edit_mode]
         self._handle_action(
             self.backend.execute_edit, animal_id, attr, getter(),
-            window=self.layout.edit_window, msg="編集完了"
+            window=self.layout.edit_window,
+            msg=f"ID:{animal_id} の {edit_mode}が完了"
         )
 
     def act(self): 
@@ -149,12 +150,14 @@ class Controller:
             self.layout.log(f"読み込み失敗: {e}")
 
     def save(self):
-        self._handle_action(self.backend.save, msg="データを保存しました")
+        result = self._handle_action(self.backend.save)
+        if result:
+            self.layout.log(result)
 
-    def data_clear(self):
+    def clear_data(self):
         confirm = messagebox.askyesno("確認","本当にマネージャーのデータを消去しますか？")
         if confirm:
-            self._handle_action(self.backend.data_clear, msg="データを消去しました")
+            self._handle_action(self.backend.clear_data, msg="データを消去しました")
         else:
             self.layout.log("データ消去をキャンセルしました")
     

@@ -26,7 +26,7 @@ class Layout:
         
         self.create_widgets()
         self.ctrl.load()
-        self.refresh_list()
+        #self.refresh_list()
 
     def create_widgets(self):
         """UIウィジェットを生成し、配置する"""
@@ -61,7 +61,7 @@ class Layout:
         buttons = [("動物追加", self.ctrl.add), ("ランダム追加", self.ctrl.add_random),
                    ("動物削除", self.ctrl.remove), ("動物編集", self.ctrl.edit),
                    ("動物行動", self.ctrl.act), ("データ保存", self.ctrl.save),
-                   ("データ消去", self.ctrl.data_clear)]
+                   ("データ消去", self.ctrl.clear_data)]
         for i, (text, method_name) in enumerate(buttons):
             tk.Button(self.tl_frame,text=text, command=method_name, width=10).pack(expand=True, fill="both")
 

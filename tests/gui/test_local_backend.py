@@ -15,6 +15,19 @@ def mock_manager():
 def local_backend(mock_layout, mock_manager):
     return LocalBackend(mock_layout, mock_manager)
 
+class TestInitialization:
+    def test_init_calls_load(self, mock_layout, mock_manager):
+        # 初期化時に読み込みが呼ばれることを確認
+        LocalBackend(mock_layout, mock_manager)
+        mock_manager.load_from_file.assert_called_once()
+
+    def test_init_failure(self, mock_layout, mock_manager):
+        # 初期化時のIOエラーが伝播するか確認
+        mock_manager.load_from_file.side_effect = IOError("ファイルがありません")
+        with pytest.raises(IOError, match="ファイルがありません"):
+            LocalBackend(mock_layout, mock_manager)
+
+
 class TestExecuteAdd:
     def test_success(self, local_backend, mock_manager):
         # Arrange
@@ -194,19 +207,13 @@ class TestExecuteSearch:
 
 class TestExecuteLoad:
     def test_success(self, local_backend, mock_manager):
-        # Act
-        local_backend.execute_load()
-        # Assert & Assert
-        mock_manager.load_from_file.assert_called_once()
-
-    def test_failure(self, local_backend, mock_manager):
         # Arrange
-        error_msg = "データの読み込みに失敗しました"
-        mock_manager.load_from_file.side_effect = IOError(error_msg)
-        # Act & Assert
-        with pytest.raises(IOError, match=error_msg):
-            local_backend.execute_load()
-        mock_manager.load_from_file.assert_called_once()
+        mock_manager.get_all_animals.return_value = []
+        # Act
+        result = local_backend.execute_load()
+        # Assert
+        mock_manager.get_all_animals.assert_called_once()
+        assert isinstance(result, list)
 
 
 class TestSave:
