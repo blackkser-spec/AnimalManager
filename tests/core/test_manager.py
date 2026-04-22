@@ -196,7 +196,7 @@ def test_clear_data(manager):
 
     assert len(manager.animals) == 0
     assert manager.id_counter == 0
-    assert manager.naming_count == {key: 0 for key in manager.naming_count}
+    assert all(count == 0 for count in manager.naming_count.values())
     assert manager.initial_state_data == manager._get_serializable_data()
 
 def test_save_to_file(manager, mock_repository):

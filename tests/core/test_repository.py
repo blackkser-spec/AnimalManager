@@ -18,7 +18,7 @@ class TestSave:
     def test_success(self, tmp_path, valid_data):
         # Arrange
         file = tmp_path / "test.json"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
         # Act
         repo.save(valid_data)
         # Assert
@@ -31,7 +31,7 @@ class TestSave:
     def test_validation_error(self, tmp_path, valid_data):
         # Arrange
         file = tmp_path / "test.json"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
         
         invalid_data = copy.deepcopy(valid_data)
         invalid_data["id_counter"] = "invalid_type"
@@ -42,7 +42,7 @@ class TestSave:
     def test_os_error(self, tmp_path, valid_data, monkeypatch):
         # Arrange
         file = tmp_path / "test.json"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
         # Errorを発生させるダミー関数を定義
         def mock_open(*args, **kwargs):
             raise OSError
@@ -59,7 +59,7 @@ class TestLoad:
     def test_success(self, tmp_path, valid_data):
         # Arrange
         file = tmp_path / "test.json"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
         with open(file, "w", encoding="UTF-8") as f:
             json.dump(valid_data, f)
         # Act
@@ -70,14 +70,14 @@ class TestLoad:
     def test_file_not_found(self, tmp_path):
         # Arrange
         file = tmp_path / "not_found.json"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
         # Act & Assert
         assert repo.load() is None
 
     def test_json_broken(self, tmp_path):
         # Arrange
         file = tmp_path / "test.json"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
         # broken json
         with open(file, "w", encoding="UTF-8") as f:
             f.write("broken json")
@@ -94,7 +94,7 @@ class TestLoad:
         file = tmp_path / "test.json"
         invalid_data = copy.deepcopy(valid_data)
         invalid_data["id_counter"] = "unknown"
-        repo = AnimalRepository(str(file))
+        repo = AnimalRepository(file)
 
         with open(file, "w", encoding="UTF-8") as f:
             json.dump(invalid_data, f)
