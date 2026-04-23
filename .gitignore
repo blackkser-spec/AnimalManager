@@ -12,3 +12,6 @@ utils/extract_definitions.py
 
 # OS metadata
 .DS_Store
+
+# local metadata
+data/animals.json

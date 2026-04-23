@@ -82,7 +82,7 @@ class RemoteBackend:
 
     def clear_data(self):
         try:
-            response = self.session.post(f"{self.base_url}/system/reset", timeout=5)
+            response = self.session.post(f"{self.base_url}/system/clear", timeout=5)
             response.raise_for_status()
         except Exception as e:
             raise Exception(f"通信エラー: {e}")

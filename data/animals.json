@@ -1,75 +1,47 @@
 {
-    "id_counter": 10,
+    "id_counter": 5,
     "naming_count": {
-        "bird": 0,
+        "bird": 1,
         "cat": 2,
-        "dog": 2,
+        "dog": 0,
         "duck": 1,
-        "fish": 2,
-        "penguin": 3
+        "fish": 0,
+        "penguin": 1
     },
     "animals": [
         {
+            "id": 1,
+            "name": "penguin1",
+            "type_en": "penguin",
+            "type_jp": "ペンギン",
+            "ex_ability": {}
+        },
+        {
             "id": 2,
+            "name": "bird1",
+            "type_en": "bird",
+            "type_jp": "鳥",
+            "ex_ability": {}
+        },
+        {
+            "id": 3,
             "name": "cat1",
             "type_en": "cat",
             "type_jp": "猫",
             "ex_ability": {}
         },
         {
-            "id": 3,
-            "name": "dog1",
-            "type_en": "dog",
-            "type_jp": "犬",
-            "ex_ability": {}
-        },
-        {
             "id": 4,
-            "name": "fish1",
-            "type_en": "fish",
-            "type_jp": "魚",
-            "ex_ability": {}
-        },
-        {
-            "id": 5,
-            "name": "dog2",
-            "type_en": "dog",
-            "type_jp": "犬",
-            "ex_ability": {}
-        },
-        {
-            "id": 6,
-            "name": "penguin2",
-            "type_en": "penguin",
-            "type_jp": "ペンギン",
-            "ex_ability": {}
-        },
-        {
-            "id": 7,
-            "name": "fish2",
-            "type_en": "fish",
-            "type_jp": "魚",
-            "ex_ability": {}
-        },
-        {
-            "id": 8,
-            "name": "duck1",
-            "type_en": "duck",
-            "type_jp": "アヒル",
-            "ex_ability": {}
-        },
-        {
-            "id": 9,
             "name": "cat2",
             "type_en": "cat",
             "type_jp": "猫",
             "ex_ability": {}
         },
         {
-            "id": 10,
-            "name": "penguin3",
-            "type_en": "penguin",
-            "type_jp": "ペンギン",
+            "id": 5,
+            "name": "duck1",
+            "type_en": "duck",
+            "type_jp": "アヒル",
             "ex_ability": {}
         }
     ]
