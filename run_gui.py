@@ -1,5 +1,5 @@
 import tkinter as tk
-from GUI.layout import Layout
+from gui.layout import Layout
 
 def select_mode():
     mode_window = tk.Tk()

@@ -1,7 +1,7 @@
 import pytest
 import tkinter as tk
 from unittest.mock import MagicMock, patch
-from GUI.layout import Layout
+from gui.layout import Layout
 
 @pytest.fixture
 def root():
@@ -11,8 +11,8 @@ def root():
 
 @pytest.fixture
 def app(root, mock_manager):
-    with patch('GUI.layout.Controller') as mock_ctrl_class, \
-         patch('GUI.layout.AnimalManager', return_value=mock_manager), \
+    with patch('gui.layout.Controller') as mock_ctrl_class, \
+         patch('gui.layout.AnimalManager', return_value=mock_manager), \
          patch('core.animal_repository.AnimalRepository.load', return_value={"animals": []}), \
          patch('core.animal_repository.AnimalRepository.save', return_value=True):
         

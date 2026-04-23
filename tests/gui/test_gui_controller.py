@@ -73,7 +73,7 @@ class TestAdd:
         # Act
         controller.execute_add("cat", "Tama")
         # Assert
-        mock_layout.log.assert_called_with("通信エラー発生")
+        mock_layout.log.assert_called_with("エラー発生: Exception: 通信エラー発生")
         mock_layout.refresh_list.assert_not_called()
         mock_layout.add_window.destroy.assert_not_called()
 
@@ -147,7 +147,7 @@ class TestEdit:
         controller.execute_edit()
         # Assert
         controller.backend.execute_edit.assert_called_once_with(1, "name", "Tama")
-        mock_layout.log.assert_called_once_with("編集完了")
+        mock_layout.log.assert_called_once_with("ID:1 の 名前の変更が完了")
         mock_layout.refresh_list.assert_called_once()
         mock_layout.edit_window.destroy.assert_called_once()
 
@@ -290,28 +290,28 @@ class TestDataManagement:
         controller.save()
         # Assert
         controller.backend.save.assert_called_once()
-        mock_layout.log.assert_called_once_with("保存データの形式が正しくありません")
+        mock_layout.log.assert_called_once_with("エラー発生: ValueError: 保存データの形式が正しくありません")
         mock_layout.refresh_list.assert_not_called()
 
-    def test_data_clear(self, controller, mock_layout):
+    def test_clear_data(self, controller, mock_layout):
         # Arrange
         mock_layout.log.return_value = None
         # Act
         with patch('controller.controller.messagebox.askyesno', return_value=True):
-            controller.data_clear()
+            controller.clear_data()
         # Assert
-        controller.backend.data_clear.assert_called_once()
+        controller.backend.clear_data.assert_called_once()
         mock_layout.log.assert_called_once_with("データを消去しました")
         mock_layout.refresh_list.assert_called_once()
     
-    def test_data_clear_abort(self, controller, mock_layout):
+    def test_clear_data_bort(self, controller, mock_layout):
         # Arrange
         mock_layout.log.return_value = None
         # Act
         with patch('controller.controller.messagebox.askyesno', return_value=False):
-            controller.data_clear()
+            controller.clear_data()
         # Assert
-        controller.backend.data_clear.assert_not_called()
+        controller.backend.clear_data.assert_not_called()
         mock_layout.log.assert_called_once_with("データ消去をキャンセルしました")
         mock_layout.refresh_list.assert_not_called()
 

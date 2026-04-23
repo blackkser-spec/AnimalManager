@@ -1,4 +1,4 @@
-from CLI import text
+from cli import text
 
 def print_menu():
     print(text.blue(text.TITLE))

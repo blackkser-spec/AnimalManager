@@ -1,6 +1,6 @@
 import pytest
 from colorama import Fore, Style
-import CLI.text as text
+import cli.text as text
 
 class TestTextColor:
     """文字色の装飾が正しく ANSI エスケープシーケンスを含んでいるか検証"""

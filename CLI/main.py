@@ -1,6 +1,6 @@
 from core.manager import AnimalManager
 from core.animal_repository import AnimalRepository
-from CLI.cli_controller import CliController
+from cli.cli_controller import CliController
 
 
 def main():

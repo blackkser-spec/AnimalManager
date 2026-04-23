@@ -1,4 +1,4 @@
-from CLI import menu_printer
+from cli import menu_printer
 from enum import Enum, auto
 
 class FlowResult(Enum):

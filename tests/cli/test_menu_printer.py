@@ -1,6 +1,6 @@
 import pytest
-from CLI import menu_printer
-from CLI import text
+from cli import menu_printer
+from cli import text
 
 class DummyAnimal:
     def __init__(self, id, type_jp, name):

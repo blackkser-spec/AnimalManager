@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
-from API.api_main import app, manager
+from api.api_main import app, manager
 
 @pytest.fixture
 def client():

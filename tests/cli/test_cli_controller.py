@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from CLI.cli_controller import CliController, FlowResult
+from cli.cli_controller import CliController, FlowResult
 
 @pytest.fixture
 def mock_manager():
