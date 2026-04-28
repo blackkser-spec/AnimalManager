@@ -95,6 +95,7 @@ TEXTS = {
     "require_positive_int": "1以上の整数値を入力してください",
     "input_required": "入力必須項目が入力されていません",
     "invalid_animal_type": "選択できない種類の動物です",
+    "invalid_attribute": "選択できない属性です",
     "invalid_ability": "選択できない特技です",
     "invalid_action": "選択できない行動です",
     "invalid_sort_key": "選択できないソート項目です",

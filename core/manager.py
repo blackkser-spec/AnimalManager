@@ -92,7 +92,7 @@ class AnimalManager:
             "ability": self._edit_animal_ability,
         }
         if attr not in edit_map:
-            raise ValidationError("invalid_selection")
+            raise ValidationError("invalid_attribute")
         return edit_map[attr](animal_id, new_value)
 
     def _edit_animal_type(self, animal_id, new_type):
