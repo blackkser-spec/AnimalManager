@@ -1,6 +1,8 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, ANY
 from cli.cli_controller import CliController, FlowResult
+from core.exceptions import ValidationError, AnimalNotFoundError, SaveError, LoadError
+
 
 @pytest.fixture
 def mock_manager():
@@ -23,29 +25,27 @@ class TestInputHelpers:
         choices = {"1": "VALID"}
         cli_controller._get_raw_input.side_effect = ["99", "1"]
         # Act
-        result = cli_controller._prompt_for_choice("test", choices)
+        result = cli_controller._prompt_for_choice(choices)
         # Assert
         assert result == "VALID"
-        cli_controller.menu_printer.print_error.assert_called_once_with("無効な選択です")
+        cli_controller.menu_printer.print_error.assert_called_once_with("invalid_selection")
         assert cli_controller.menu_printer.print_error.call_count == 1
 
     def test_choice_cancel(self, cli_controller):
         # Arrange
         cli_controller._get_raw_input.return_value = ""
         # Act
-        result = cli_controller._prompt_for_choice("test", {"1": "V"}, cancel_msg="CANCELLED")
+        result = cli_controller._prompt_for_choice("test")
         # Assert
         assert result is None
-        cli_controller.menu_printer.print_cancel.assert_called_with("CANCELLED")
 
     def test_input_cancel(self, cli_controller):
         # Arrange
         cli_controller._get_raw_input.return_value = ""
         # Act
-        result = cli_controller._prompt_for_input("test", cancel_msg="CANCELLED")
+        result = cli_controller._prompt_for_input("test")
         # Assert
         assert result is None
-        cli_controller.menu_printer.print_cancel.assert_called_with("CANCELLED")
 
     def test_input_with_validator_error(self, cli_controller):
         # Arrange
@@ -67,7 +67,7 @@ class TestInputHelpers:
         result = cli_controller._prompt_for_input("test", allow_cancel=False)
         # Assert
         assert result == "valid_input"
-        cli_controller.menu_printer.print_error.assert_called_with("入力は必須です")
+        cli_controller.menu_printer.print_error.assert_called_with("input_required")
 
     def test_select_animal_id_flow_success(self, cli_controller, mock_manager):
         # Arrange: 1回目失敗(文字)、2回目失敗(存在しないID)、3回目成功
@@ -97,50 +97,58 @@ class TestInputHelpers:
         # 正常系: 文字列
         assert cli_controller._validate_selection_from_list("banana", valid_list) == "banana"
         # 異常系
-        with pytest.raises(ValueError, match="無効な値です"):
+        with pytest.raises(ValueError, match="invalid_value"):
             cli_controller._validate_selection_from_list("3", valid_list)
-        with pytest.raises(ValueError, match="無効な値です"):
+        with pytest.raises(ValueError, match="invalid_value"):
             cli_controller._validate_selection_from_list("orange", valid_list)
 
 
 class TestValidators:    
-    def test_validate_positive_int(self, cli_controller):
+    def test_positive_int(self, cli_controller):
         # 正しい入力
         assert cli_controller._validate_positive_int("10") == 10
         # 負の数
-        with pytest.raises(ValueError, match="1以上の数値を入力してください"):
+        with pytest.raises(ValueError, match="require_positive_int"):
             cli_controller._validate_positive_int("0")
         # 文字列
         with pytest.raises(ValueError):
             cli_controller._validate_positive_int("abc")
 
-    def test_validate_animal_id(self, cli_controller, mock_manager):
+    def test_animal_id(self, cli_controller, mock_manager):
         # 存在するID
         mock_manager.get_animal.return_value = MagicMock()
         assert cli_controller._validate_animal_id("1") == 1
         # 存在しないID
         mock_manager.get_animal.return_value = None
-        with pytest.raises(ValueError, match="そのIDの動物は存在しません"):
+        with pytest.raises(ValueError, match="id_not_found"):
             cli_controller._validate_animal_id("99")
 
-    def test_validate_animal_type(self, cli_controller, mock_manager):
-        mock_manager.get_available_animal_types.return_value = ["cat", "dog"]
-        # インデックス入力
-        assert cli_controller._validate_animal_type("1") == "cat"
-        # 文字列入力
-        assert cli_controller._validate_animal_type("dog") == "dog"
-        # 無効な入力
+    def test_selection_from_list(self, cli_controller):
+        list = ["apple", "banana"]
+        # 存在する値
+        assert cli_controller._validate_selection_from_list("1", list) == "apple"
+        assert cli_controller._validate_selection_from_list("banana", list) == "banana"
+        # 存在しない値
         with pytest.raises(ValueError):
-            cli_controller._validate_animal_type("bird")
+            cli_controller._validate_selection_from_list("3", list)
+            cli_controller._validate_selection_from_list("orange", list)
 
-    def test_validate_action(self, cli_controller):
-        # 数字変換
-        assert cli_controller._validate_action("1") == "voice"
-        # 大文字文字変換
-        assert cli_controller._validate_action("FLY") == "fly"
-        # 例外入力
-        with pytest.raises(ValueError, match="無効な選択です"):
-            cli_controller._validate_action("jump")
+    def test_animal_type(self, cli_controller, mock_manager):
+        # Arrange
+        mock_manager.get_available_animal_types.return_value = ["dog", "cat"]
+        # Act
+        result = cli_controller._validate_animal_type("dog")
+        # Assert
+        assert result == "dog"
+        mock_manager.get_available_animal_types.assert_called_once()
+
+    def test_ability(self, cli_controller, mock_manager):
+        # Arrange
+        mock_manager.get_available_abilities.return_value = ["fly", "swim"]
+        # Act & Assert
+        result = cli_controller._validate_ability("fly")
+        assert result == "fly"
+        mock_manager.get_available_abilities.assert_called_once()
 
 
 class TestMenuFlows:
@@ -223,13 +231,20 @@ class TestMenuFlows:
 
 class TestSearchAnimalFlows:
     @pytest.mark.parametrize("choice, attr", [
-        ("1", "ID"),
-        ("2", "種類"),
-        ("3", "名前"),
-        ("4", "特技"),
+        ("1", "all"),
+        ("2", "id"),
+        ("3", "type"),
+        ("4", "name"),
+        ("5", "ability"),
     ])
     def test_success(self, cli_controller, mock_manager, choice, attr):
         # Arrange
+        mock_manager.SEARCH_MAP = {
+            "id": "ID",
+            "type": "種族",
+            "name": "名前",
+            "ability": "特技"
+        }
         mock_results = [MagicMock()]
         mock_manager.get_all_animals.return_value = []
         mock_manager.search_animal.return_value = mock_results
@@ -240,17 +255,23 @@ class TestSearchAnimalFlows:
         assert result == FlowResult.TO_MAIN
         mock_manager.search_animal.assert_called_once_with(attr, "keyword")
         cli_controller.menu_printer.print_animal_list.assert_called_with(mock_results)
-        cli_controller.menu_printer.print_success.assert_called()
+        cli_controller.menu_printer.print_success.assert_called_with("search", count=len(mock_results))
 
     def test_no_results(self, cli_controller, mock_manager):
         # Arrange
+        mock_manager.SEARCH_MAP = {
+            "id": "ID",
+            "type": "種族",
+            "name": "名前",
+            "ability": "特技"
+        }
         mock_manager.get_all_animals.return_value = []
         mock_manager.search_animal.return_value = []
         cli_controller._get_raw_input.side_effect = ["3", "NonExistent"]
         # Act
         cli_controller.search_animal_flow()
         # Assert
-        cli_controller.menu_printer.print_error.assert_called_with("検索結果が見つかりませんでした")
+        cli_controller.menu_printer.print_error.assert_called_with("search_not_found")
 
 
 
@@ -263,17 +284,17 @@ class TestExitManager:
         # Assert
         assert result == FlowResult.EXIT
         cli_controller.manager.save_to_file.assert_called_once()
-        cli_controller.menu_printer.print_success.assert_called_with("AnimalManagerを終了します")
+        cli_controller.menu_printer.print_success.assert_called_with("app_exited")
     
     def test_failure(self, cli_controller):
         # Arrange
-        cli_controller.manager.save_to_file.side_effect = IOError("データの保存に失敗しました")
+        cli_controller.manager.save_to_file.side_effect = SaveError("save_error")
         cli_controller.menu_printer.print_error = MagicMock()
         # Act & Assert
-        with pytest.raises(IOError):
+        with pytest.raises(SaveError, match="save_error"):
             cli_controller.exit_manager()
         cli_controller.manager.save_to_file.assert_called_once()
-        cli_controller.menu_printer.print_error.assert_called_with("データの保存に失敗しました")
+        cli_controller.menu_printer.print_error.assert_called_with("save_error")
         cli_controller.menu_printer.print_success.assert_not_called()
 
 
@@ -287,17 +308,17 @@ class TestAddAnimalFlow:
         # Assert
         assert result == FlowResult.TO_MAIN
         mock_manager.add_animal.assert_called_once_with("cat", "Tama")
-        cli_controller.menu_printer.print_success.assert_called_with("動物を追加しました")
+        cli_controller.menu_printer.print_success.assert_called_with("animal_added")
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
         mock_manager.get_available_animal_types.return_value = ["cat"]
-        mock_manager.add_animal.side_effect = ValueError("名前は20文字以内で入力してください")
+        mock_manager.add_animal.side_effect = ValidationError("name_too_long")
         cli_controller._get_raw_input.side_effect = ["cat", "a" * 21]
         # Act
         cli_controller.add_animal_flow()
         # Assert
-        cli_controller.menu_printer.print_error.assert_called_with("名前は20文字以内で入力してください")
+        cli_controller.menu_printer.print_error.assert_called_with("name_too_long")
         cli_controller.menu_printer.print_success.assert_not_called()
 
 class TestAddRandomFlow:
@@ -334,29 +355,29 @@ class TestRemoveAnimalFlow:
         cli_controller.remove_animal_flow()
         # Assert
         mock_manager.remove_animal.assert_called_once_with(1)
-        cli_controller.menu_printer.print_success.assert_called_with("Tama を削除しました")
+        cli_controller.menu_printer.print_success.assert_called_with("animal_removed", name="Tama")
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
         mock_animal = MagicMock()
         mock_manager.get_all_animals.return_value = [mock_animal]
         mock_manager.get_animal.return_value = mock_animal
-        mock_manager.remove_animal.side_effect = ValueError("IDは数値で入力してください")
+        mock_manager.remove_animal.side_effect = ValidationError("invalid_value")
         cli_controller._get_raw_input.return_value = "99"
         # Act
         cli_controller.remove_animal_flow()
         # Assert
-        cli_controller.menu_printer.print_error.assert_called_with("IDは数値で入力してください")
+        cli_controller.menu_printer.print_error.assert_called_with("invalid_value")
         cli_controller.menu_printer.print_success.assert_not_called()
 
 
 class TestEditAnimalFlow:
-    @pytest.mark.parametrize("menu_index, attr_key, new_value, expected_msg_part",[
-        ("1", "type", "cat", "種類を cat"),
-        ("2", "name", "NewName", "名前を NewName"),
-        ("3", "ability", "fly", "特技を fly")
+    @pytest.mark.parametrize("menu_index, attr_key, new_value, expected_msg",[
+        ("1", "type", "cat", "animal_type_updated"),
+        ("2", "name", "NewName", "animal_name_updated"),
+        ("3", "ability", "fly", "animal_ability_updated")
     ])
-    def test_success(self, cli_controller, mock_manager, menu_index, attr_key, new_value, expected_msg_part):
+    def test_success(self, cli_controller, mock_manager, menu_index, attr_key, new_value, expected_msg):
         # Arrange
         mock_animal = MagicMock()
         mock_manager.get_all_animals.return_value = [mock_animal]
@@ -364,20 +385,24 @@ class TestEditAnimalFlow:
         mock_manager.edit_animal.return_value = mock_animal
         mock_manager.get_available_animal_types.return_value = ["cat"]
         mock_manager.get_available_abilities.return_value = ["fly"]
+        # コントローラーが表示に使用する属性キーを明示的に設定
+        mock_manager.EDITABLE_ATTRIBUTES = ["type", "name", "ability"]
+        
         cli_controller._get_raw_input.side_effect = ["1", menu_index, new_value]
         # Act
         cli_controller.edit_animal_attr_flow()
         # Assert
         mock_manager.edit_animal.assert_called_once_with(1, attr_key, new_value)
+        # 実際に呼ばれた際の第一引数（メッセージキー）を取得
         actual_msg = cli_controller.menu_printer.print_success.call_args.args[0]
-        assert expected_msg_part in actual_msg
+        assert expected_msg in actual_msg
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
         mock_animal = MagicMock()
         mock_manager.get_all_animals.return_value = [mock_animal]
         mock_manager.get_animal.return_value = mock_animal
-        mock_manager.edit_animal.side_effect = ValueError("名前は20文字以内で入力してください")
+        mock_manager.edit_animal.side_effect = ValidationError("name_too_long")
         cli_controller._get_raw_input.side_effect = ["1", "2", "a" * 21]
         # Act
         cli_controller.edit_animal_attr_flow()
@@ -390,22 +415,23 @@ class TestActAnimalFlow:
         # Arrange
         mock_animal = MagicMock()
         mock_manager.act_animal.return_value = [mock_animal]
+        mock_manager.ALLOWED_ACTIONS = ["voice", "fly", "swim"]
         cli_controller._get_raw_input.return_value = "1"
         # Act
         result = cli_controller.act_animal_flow()
         # Assert
         assert result == FlowResult.TO_MAIN
         mock_manager.act_animal.assert_called_once_with("voice")
-        cli_controller.menu_printer.print_success.assert_called()
+        cli_controller.menu_printer.print_success.assert_called_with("actions_performed", count=1)
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
-        mock_manager.act_animal.side_effect = ValueError("無効な選択です")
+        mock_manager.act_animal.side_effect = ValidationError("無効な選択です")
         cli_controller._get_raw_input.side_effect = ["99",""]
         # Act
         cli_controller.act_animal_flow()
         # Assert
-        cli_controller.menu_printer.print_error.assert_called_with("無効な選択です")
+        cli_controller.menu_printer.print_error.assert_called_with("invalid_value")
 
 
 class TestShowAnimalListFlow:
@@ -432,7 +458,8 @@ class TestSortListFlow:
     @pytest.mark.parametrize("sort_index, expected_category", [
         ("1", "id"),
         ("2", "type_en"),
-        ("3", "name")
+        ("3", "type_jp"),
+        ("4", "name")
     ])
     def test_success(self, cli_controller, mock_manager, sort_index, expected_category):
         # Arrange
@@ -440,18 +467,19 @@ class TestSortListFlow:
         sorted_mock_list = [MagicMock()]
         mock_manager.get_all_animals.return_value = mock_list
         mock_manager.sort_list.return_value = sorted_mock_list
+        mock_manager.ALLOWED_SORT_KEYS = ["id", "type_en", "type_jp", "name"]
         cli_controller._get_raw_input.return_value = sort_index
         # Act
         cli_controller.sort_list_flow()
         # Assert
         mock_manager.get_all_animals.assert_called_once()
-        mock_manager.sort_list.assert_called_once_with(mock_list, expected_category)
+        mock_manager.sort_list.assert_called_with(mock_list, expected_category)
         cli_controller.menu_printer.print_animal_list.assert_called_once_with(sorted_mock_list)
-        cli_controller.menu_printer.print_success.assert_called()
+        cli_controller.menu_printer.print_success.assert_called_with("list_sorted", category=expected_category)
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
-        mock_manager.sort_list.side_effect = ValueError
+        mock_manager.sort_list.side_effect = ValidationError("invalid_sort_key")
         cli_controller._get_raw_input.side_effect = ["99",""]
         # Act
         cli_controller.sort_list_flow()
@@ -468,7 +496,7 @@ class TestClearDataFlow:
         # Assert
         assert result == FlowResult.TO_MAIN
         mock_manager.clear_data.assert_called_once()
-        cli_controller.menu_printer.print_success.assert_called_with("データを消去しました")
+        cli_controller.menu_printer.print_success.assert_called_with("all_data_cleared")
 
 
 class TestFlowCancellations:
@@ -490,7 +518,7 @@ class TestFlowCancellations:
         ("search_animal_flow", ["1", "", ""], FlowResult.TO_MAIN),
     ])
     def test_all_cancel_scenarios(self, cli_controller, mock_manager, flow_method, inputs, expected_return):
-        # Arrange: どのフローが呼ばれてもバリデーションを通るように最小限のモックを設定
+        # Arrange
         mock_animal = MagicMock(id=1)
         mock_animal.name = "Tama"
         mock_manager.get_all_animals.return_value = [mock_animal]

@@ -1,54 +1,107 @@
-from colorama import Fore, Style
-import unicodedata
-
-COLORS = {
-    "red": Fore.RED,
-    "green": Fore.GREEN,
-    "blue": Fore.BLUE,
-    "yellow": Fore.YELLOW,
+TEXTS = {
+    "title": {
+        "title": "##### Animal Manager #####",
+        "title_end": "##########################",
+    },
+    "main": {
+        "manage_animal": "動物を管理",
+        "manage_list": "動物リストを管理",
+        "search_animal": "リストから動物を検索",
+        "exit_app": "AnimalManagerを終了",
+    },
+    "animal": {
+        "add": "動物をリストに追加",
+        "add_random": "動物をランダムに追加",
+        "remove": "動物をリストから削除",
+        "edit": "動物の属性を変更",
+        "act": "動物を行動させる",
+    },
+    "list": {
+        "show": "現在のリストを表示",
+        "sort": "リストをソート",
+        "clear": "全てのデータを消去",
+    },
+    "headers": {
+        "animal_type_list": "動物の種類一覧",
+        "ability_list": "特技の一覧",
+        "all": "すべて",
+        "id": "ID",
+        "type": "種類",
+        "name": "名前",
+        "ability": "特技",
+        "edit_choice_header": "変更可能属性の一覧",
+        "search_choice_header": "検索項目の一覧",
+        "sort_choice_header": "ソート項目の一覧",
+        "action_choice_header": "実行可能な特技の一覧",
+        "type_en": "種類(英名)",
+        "voice": "鳴き声",
+        "fly": "空を飛ぶ",
+        "swim": "泳ぐ",
+    },
+    "prompts": {
+        "select_animal_type": "追加したい動物の種類を番号または名前（例: 1, cat）で入力",
+        "select_action": "実行する処理のindexを入力",
+        "select_search_attr": "検索項目をindexで入力",
+        "input_name": "名前を入力してください",
+        "input_count": "回数を入力してください",
+        "input_id": "IDを入力してください",
+        "input_keyword": "検索するキーワードを入力してください",
+        "input_action": "実行する特技名またはindexを入力",
+        "name_for_type": "{type} につける名前を入力",
+        "new_type_formatted": "ID:{id} {name} の新しい種類を番号または名前（例: 1, cat）で入力",
+        "new_name_formatted": "ID:{id} {name} の新しい名前を入力",
+        "new_ability_formatted": "ID:{id} {name} の新しい特技を入力",
+        "cancel_if_empty": "(未入力でキャンセル)",
+    },
+    "success": {
+        "animal_added": "{type_jp} の {name} を追加しました",
+        "random_animals_added": "ランダムに{count}回動物を追加しました",
+        "animal_removed": "{name} を削除しました",
+        "data_saved": "データを保存しました",
+        "search_completed":  "{count} 件の動物が見つかりました",
+        "all_data_cleared": "データを消去しました",
+        "list_sorted": "{category} 順にソートしました",
+        "animal_type_updated": "{name} の種類を {type} に更新しました",
+        "animal_name_updated": "{old_name} の名前を {new_name} に更新しました",
+        "animal_ability_updated": "{name} の特技を {ability} に更新しました",
+        "actions_performed": "{count} 件の行動を実行しました",
+        "app_exited": "AnimalManagerを終了します",
+    },
+    "cancel": {
+        "add_cancelled": "追加をキャンセルしました",
+        "remove_cancelled": "削除をキャンセルしました",
+        "edit_cancelled": "属性の変更をキャンセルしました",
+        "act_cancelled": "特技の実行をキャンセルしました",
+        "sort_cancelled": "ソートをキャンセルしました",
+        "search_finished": "検索を終了します",
+        "search_reverted": "検索項目の選択に戻ります",
+        "clear_data_cancelled": "データの消去をキャンセルしました",
+    },
+    "confirm":{
+        "clear_data_confirmation":"本当に消去する場合 yes を入力してください",
+    },
+    "error": {
+    "load_error": "データの読み込みに失敗しました（アクセス権限等）",
+    "save_error": "データの保存に失敗しました（書き込み権限や容量不足）",
+    "invalid_save_data": "保存データの形式が正しくありません",
+    "file_broken_moved": "データファイル破損のため {path} に退避しました ({reason})",
+    "json_syntax_error": "JSONの記述ミス",
+    "data_inconsistency": "データの不整合",
+    "list_fetch_error": "リストの取得に失敗しました",
+    "keyboard_interrupt": "\n中断されました。終了します。",
+    "invalid_selection": "表示されているindexの中から値を入力してください",
+    "invalid_value": "無効な値です",
+    "require_int": "整数値を入力してください",
+    "require_positive_int": "1以上の整数値を入力してください",
+    "input_required": "入力必須項目が入力されていません",
+    "invalid_animal_type": "選択できない種類の動物です",
+    "invalid_ability": "選択できない特技です",
+    "invalid_action": "選択できない行動です",
+    "invalid_sort_key": "選択できないソート項目です",
+    "invalid_search_attr": "選択できない検索項目です",
+    "name_empty": "名前は1文字以上で入力してください",
+    "name_too_long": "名前は20文字以内で入力してください",
+    "search_not_found": "検索結果が見つかりませんでした",
+    "id_not_found": "そのIDの動物は存在しません",
+    }
 }
-def red(text):
-    return color(text, "red")
-def blue(text):
-    return color(text, "blue")
-def green(text):
-    return color(text, "green")
-def yellow(text):
-    return color(text, "yellow")
-
-def color(text, color_name):
-    return f"{COLORS[color_name]}{text}{Style.RESET_ALL}"
-
-def get_display_width(text):
-    width = 0
-    for ch in text:
-        if unicodedata.east_asian_width(ch) in ("F","W"):
-            width += 2
-        else:
-            width += 1
-    return width
-                         
-def pad_right(text,total_width):
-    current = get_display_width(text)
-    return text + " " * (total_width - current)
-
-TITLE     = "##### Animal Manager #####"
-TITLE_END = "##########################"
-RETURN        = "0.戻る"   
-MANAGE_ANIMAL = "1.動物を管理"
-ADD_ANIMAL    = "1.動物をリストに追加"
-ADD_RANDOM    = "2.動物をランダムに追加"
-REMOVE_ANIMAL = "3.動物をリストから削除"
-EDIT_ATTRIBUTE = "4.動物の属性を変更"
-ACT_ANIMAL    = "5.動物を行動させる"
-MANAGE_LIST   = "2.動物リストを管理"
-SHOW_LIST     = "1.現在のリストを表示"
-SORT_LIST     = "2.リストをソート"
-CLEAR_LIST    = "3.全てのデータを消去"
-SEARCH_ANIMAL = "3.リストから動物を検索"
-EXIT_MANAGER  = "4.AnimalManagerを終了"
-SEARCH_CHOICE = "1:ID 2:種類 3:名前 4:特技"
-SORT_CHOICE   = "1:ID順 2:種類順 3:名前順"
-ACT_CHOICE    = "1:鳴かせる 2:飛ばせる 3:泳がせる"
-EDIT_ATTRIBUTE_CHOICE = "1:種類 2:名前 3:特技"
-LOAD_ERROR     = "データの読み込みに失敗しました"

@@ -135,7 +135,7 @@ class Controller:
         keyword = self.layout.search_entry.get()
         try:
             animals = self.backend.execute_search(attribute, keyword)
-            # AnimalDTOはdataclassなのでgetattrで属性取得可能
+            # AnimalDTOはdataclassなのでgetattrで属性取得
             animals.sort(key=lambda x: getattr(x, category), reverse=self.sort_desc)
             self.layout.refresh_list(animals)
         except Exception as e:

@@ -1,6 +1,8 @@
 import json
 import os
-from pydantic import BaseModel, ValidationError, Field
+from pydantic import BaseModel, ValidationError as PydanticValidationError, Field
+from core.exceptions import LoadError, SaveError
+
 
 class AnimalSchema(BaseModel):
     id: int
@@ -27,10 +29,10 @@ class AnimalRepository:
                 
             with open(self.file_path, "w", encoding="UTF-8") as f:
                 f.write(validated_data.model_dump_json(indent=4))
-        except (ValidationError, TypeError):
-            raise ValueError("保存データの形式が正しくありません")
+        except (PydanticValidationError, TypeError):
+            raise SaveError("invalid_save_data")
         except OSError:
-            raise IOError("ファイルの書き込み権限がないか、ディスクがいっぱいです")
+            raise SaveError("save_error")
 
     def load(self):
         try:
@@ -44,14 +46,14 @@ class AnimalRepository:
                 validated_data = StorageSchema.model_validate(raw_data)
                 return validated_data.model_dump()
 
-            except (json.JSONDecodeError, ValidationError) as e:
+            except (json.JSONDecodeError, PydanticValidationError) as e:
                 # 破損している場合はリネームして通知する（例外を投げる）
                 base, ext = os.path.splitext(self.file_path)
                 broken_path = f"{base}_broken{ext}"
                 os.rename(self.file_path, broken_path)
                 
-                reason = "JSONの記述ミス" if isinstance(e, json.JSONDecodeError) else "データの不整合"
-                raise ValueError(f"データファイル破損のため {broken_path} に退避しました ({reason})")
+                reason_key = "json_syntax_error" if isinstance(e, json.JSONDecodeError) else "data_inconsistency"
+                raise LoadError("file_broken_moved", path=broken_path, reason=reason_key)
 
         except OSError:
-            raise IOError("データファイルの読み込みに失敗しました（アクセス権限等）")
+            raise LoadError("load_error")

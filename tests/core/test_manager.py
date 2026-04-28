@@ -1,7 +1,9 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from core.manager import AnimalManager, AnimalNotFoundError
 from core.animal_repository import AnimalRepository
+from core.exceptions import ValidationError, AnimalNotFoundError, SaveError, LoadError
+
 
 @pytest.fixture
 def mock_repository():
@@ -13,136 +15,160 @@ def manager(mock_repository):
     """    テストごとに初期化されたAnimalManagerのインスタンスを提供します。    """
     return AnimalManager(mock_repository)
 
-@pytest.mark.parametrize("animal_type, name", [
-    ("cat", "add_Cat"),
-    ("dog", "add_Dog"),
-    ("duck", "add_Duck"),
-])
-def test_add_animal(manager, animal_type, name):
-    animal = manager.add_animal(animal_type, name)
-    
-    assert animal.type_en == animal_type
-    assert animal.name == name
-    assert 1 in manager.animals
-    assert len(manager.animals) == 1
 
-@pytest.mark.parametrize("animal_type, name, expected_error", [
-    ("unknown", "add_Cat", "無効な種類の動物です"),
-    ("cat", "a" * 21, "名前は20文字以内で入力してください"),
-    ("cat", "", "名前を空白にはできません"),
-])
-def test_add_animal_error(manager, animal_type, name, expected_error):
-    """
-    不正な入力に対するバリデーションが正しく機能するか。
-    このテストはManagerの安全性における中心的な役割を担います。
-    """
-    with pytest.raises(ValueError, match=expected_error):
-        manager.add_animal(animal_type, name)
+class TestAddAnimal:
+    @pytest.mark.parametrize("animal_type, name", [
+        ("cat", "add_Cat"),
+        ("dog", "add_Dog"),
+        ("duck", "add_Duck"),
+    ])
+    def test_success(self, manager, animal_type, name):
+        # Act
+        animal = manager.add_animal(animal_type, name)
+        # Assert
+        assert animal.type_en == animal_type
+        assert animal.name == name
+        assert 1 in manager.animals
+        assert len(manager.animals) == 1
 
-def test_add_animal_with_extreme_name(manager):
-    """
-    サロゲートペア（絵文字など）の扱いが気になったため追加。
-    """
-    animal = manager.add_animal("cat", "🐱🐱🐱")
-    assert animal.name == "🐱🐱🐱"
+    @pytest.mark.parametrize("animal_type, name, expected_error", [
+        ("unknown", "add_Cat", "invalid_animal_type"),
+        ("cat", "a" * 21, "name_too_long"),
+        ("cat", "", "name_empty"),
+    ])
+    def test_failure(self, manager, animal_type, name, expected_error):
+        # Act & Assert
+        with pytest.raises(ValidationError, match=expected_error):
+            manager.add_animal(animal_type, name)
 
-def test_add_random_animal(manager):
-    result = manager.add_random_animal(3)
-    assert len(result) == 3
+    def test_extreme_name(self, manager):
+        """サロゲートペア（絵文字など）の扱い"""
+        # Act
+        animal = manager.add_animal("cat", "🐱🐱🐱")
+        # Assert
+        assert animal.name == "🐱🐱🐱"
 
-@pytest.mark.parametrize("count",[(-1), (0)])
-def test_add_random_animal_invalid_range(manager,count):
-    with pytest.raises(ValueError):
-        manager.add_random_animal(count)
+class TestAddRandomAnimal:
+    def test_success(self, manager):
+        result = manager.add_random_animal(3)
+        assert len(result) == 3
 
-@pytest.mark.parametrize("count", [0.1, "a"])
-def test_add_random_animal_invalid_type(manager, count):
-    with pytest.raises(ValueError):
-        manager.add_random_animal(count)
+    @pytest.mark.parametrize("count",[-1, 0])
+    def test_failire_invalid_range(self, manager,count):
+        with pytest.raises(ValidationError):
+            manager.add_random_animal(count)
 
-def test_get_animal(manager):
-    original = manager.add_animal("bird","get_Bird")
-    result = manager.get_animal(original.id)
+    @pytest.mark.parametrize("count", [0.1, "a"])
+    def test_failire_invalid_type(self, manager, count):
+        with pytest.raises(ValidationError):
+            manager.add_random_animal(count)
 
-    assert result.type_jp == "鳥"
-    assert result.name == "get_Bird"
+class TestGetAnimal:
+    def test_get_animal(self, manager):
+        original = manager.add_animal("bird","get_Bird")
+        result = manager.get_animal(original.id)
 
-def test_get_animal_not_found(manager):
-    with pytest.raises(AnimalNotFoundError):
-        manager.get_animal(999)
+        assert result.type_jp == "鳥"
+        assert result.name == "get_Bird"
 
-def test_get_all_animals_returns_correct_count(manager):
-    manager.add_random_animal(5)
-    animals = manager.get_all_animals()
-    assert len(animals) == 5
+    def test_get_animal_not_found(self, manager):
+        with pytest.raises(AnimalNotFoundError):
+            manager.get_animal(999)
 
-def test_remove_animal(manager):
-    animal = manager.add_animal("cat", "remove_Cat")
-    manager.remove_animal(animal.id)
-    
-    assert len(manager.animals) == 0
 
-def test_edit_animal_type(manager):
-    original = manager.add_animal("bird","edit_Bird")
-    edited = manager.edit_animal(original.id, "type", "cat")
+class TestGetAnimals:
+    def test_get_all_animals_returns_correct_count(self, manager):
+        manager.add_random_animal(5)
+        animals = manager.get_all_animals()
+        assert len(animals) == 5
 
-    assert edited is not original
-    assert edited.id == original.id
-    assert manager.get_animal(original.id) is edited
-    assert edited.type_jp == "猫"
 
-def test_edit_animal_type_preserves_ex_ability(manager):
-    """種類を変更しても、習得済みの特技がリセットされないことを保証します。"""
-    original = manager.add_animal("dog", "skill_dog")
-    manager.edit_animal(original.id, "ability","fly")
-    
-    edited = manager.edit_animal(original.id,"type", "cat")
-    assert "fly" in edited.get_all_ability()
+class TestRemoveAnimal:
+    def test_success(self, manager):
+        animal = manager.add_animal("cat", "remove_Cat")
+        manager.remove_animal(animal.id)
+        
+        assert len(manager.animals) == 0
 
-def test_edit_animal_type_error(manager):
-    original = manager.add_animal("bird","edit_Bird")
-    with pytest.raises(ValueError):
-        manager.edit_animal(original.id, "type", "unknown")
+    def test_failure_not_found(self, manager):
+        with pytest.raises(AnimalNotFoundError):
+            manager.remove_animal(999)
 
-def test_edit_animal_name(manager):
-    original = manager.add_animal("bird","edit_Bird")
-    edited = manager.edit_animal(original.id, "name", "edited_Bird")
 
-    assert edited is original
-    assert edited.id == original.id
-    assert manager.get_animal(original.id) is edited
+class TestEditAnimal:
+    @pytest.mark.parametrize("attr, target_method", [
+        ("type", "_edit_animal_type"),
+        ("name", "_edit_animal_name"),
+        ("ability", "_edit_animal_ability"),
+    ])
+    def test_edit_dispatch(self, manager, attr, target_method):
+        animal = manager.add_animal("cat", "test")
+        with patch.object(AnimalManager, target_method) as mock_method:
+            manager.edit_animal(animal.id, attr, "new_value")
+            mock_method.assert_called_once_with(animal.id, "new_value")
 
-    assert edited.name == "edited_Bird"
+    def test_edit_animal_type(self, manager):
+        original = manager.add_animal("bird","edit_Bird")
+        edited = manager.edit_animal(original.id, "type", "cat")
 
-@pytest.mark.parametrize(
-        "new_name, expected_disc",
-        [
-            ("","空白"),
-            ("a" * 21,"20文字以内"),
-        ])
-def test_edit_animal_name_error(manager, new_name, expected_disc):
-    original = manager.add_animal("bird", "edit_Bird")
-    with pytest.raises(ValueError, match=expected_disc):
-        manager.edit_animal(original.id, "name", new_name)
+        assert edited is not original
+        assert edited.id == original.id
+        assert manager.get_animal(original.id) is edited
+        assert edited.type_jp == "猫"
 
-def test_edit_animal_ability(manager):
-    original = manager.add_animal("bird","edit_Bird")
-    original_ability = original.get_all_ability().copy()
+    def test_edit_animal_type_preserves_ex_ability(manager):
+        """種類を変更しても、習得済みの特技がリセットされないことを保証します。"""
+        original = manager.add_animal("dog", "skill_dog")
+        manager.edit_animal(original.id, "ability","fly")
+        
+        edited = manager.edit_animal(original.id,"type", "cat")
+        assert "fly" in edited.get_all_ability()
 
-    edited = manager.edit_animal(original.id, "ability", "swim")
-    edited_ability = edited.get_all_ability()
+    def test_edit_animal_type_error(manager):
+        original = manager.add_animal("bird","edit_Bird")
+        with pytest.raises(ValueError):
+            manager.edit_animal(original.id, "type", "unknown")
 
-    assert edited is original
-    assert edited.id == original.id
-    assert manager.get_animal(original.id) is edited
+    def test_edit_animal_name(manager):
+        original = manager.add_animal("bird","edit_Bird")
+        edited = manager.edit_animal(original.id, "name", "edited_Bird")
 
-    assert edited_ability != original_ability
-    assert "swim" in edited_ability
+        assert edited is original
+        assert edited.id == original.id
+        assert manager.get_animal(original.id) is edited
 
-def test_edit_animal_ability_error(manager):
-    original = manager.add_animal("bird","edit_Bird")
-    with pytest.raises(ValueError):
-        manager.edit_animal(original.id, "ability","unknown")
+        assert edited.name == "edited_Bird"
+
+    @pytest.mark.parametrize(
+            "new_name, expected_disc",
+            [
+                ("","空白"),
+                ("a" * 21,"20文字以内"),
+            ])
+    def test_edit_animal_name_error(manager, new_name, expected_disc):
+        original = manager.add_animal("bird", "edit_Bird")
+        with pytest.raises(ValueError, match=expected_disc):
+            manager.edit_animal(original.id, "name", new_name)
+
+    def test_edit_animal_ability(manager):
+        original = manager.add_animal("bird","edit_Bird")
+        original_ability = original.get_all_ability().copy()
+
+        edited = manager.edit_animal(original.id, "ability", "swim")
+        edited_ability = edited.get_all_ability()
+
+        assert edited is original
+        assert edited.id == original.id
+        assert manager.get_animal(original.id) is edited
+
+        assert edited_ability != original_ability
+        assert "swim" in edited_ability
+
+    def test_edit_animal_ability_error(manager):
+        original = manager.add_animal("bird","edit_Bird")
+        with pytest.raises(ValueError):
+            manager.edit_animal(original.id, "ability","unknown")
+
 
 @pytest.mark.parametrize("action, expected_count", [
     ("voice", 2), # 両方鳴ける

@@ -96,6 +96,3 @@ AVAILABLE_ABILITIES = {
     "fly": {"msg": "空を飛んでいる"},
     "swim": {"msg": "水中を泳いでいる"},
 }
-
-class AnimalNotFoundError(Exception):
-    pass

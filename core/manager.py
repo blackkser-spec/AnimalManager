@@ -1,18 +1,17 @@
 from core import animal
+from .exceptions import AnimalNotFoundError, ValidationError
 import random
-
-class AnimalNotFoundError(Exception):
-    pass
 
 class AnimalManager:
     SEARCH_MAP = {
-        "ID": lambda a: [str(a.id)],
-        "種類": lambda a: [(a.type_en or "").lower(), (a.type_jp or "")],  
-        "名前": lambda a: [a.name.lower()],     
-        "特技": lambda a: list(a.get_all_ability().keys())
-        }
-    ALLOWED_SORT_KEYS = {"id", "type_en", "type_jp", "name"}
-    ALLOWED_ACTIONS = {"voice", "fly", "swim"}
+        "id": lambda a: [str(a.id)],
+        "type": lambda a: [(a.type_en or "").lower(), (a.type_jp or "")],
+        "name": lambda a: [a.name.lower()],
+        "ability": lambda a: list(a.get_all_ability().keys())
+    }
+    ALLOWED_SORT_KEYS = ["id", "type_en", "type_jp", "name"]
+    ALLOWED_ACTIONS = ["voice", "fly", "swim"]
+    EDITABLE_ATTRIBUTES = ["type", "name", "ability"]
     
     def __init__(self, repository):
         self.repository = repository
@@ -39,7 +38,7 @@ class AnimalManager:
     def get_animal(self, animal_id, raise_error=True):
         animal = self.animals.get(animal_id)
         if raise_error and animal is None:
-            raise AnimalNotFoundError(f"ID:{animal_id} に該当する動物は存在しません")
+            raise AnimalNotFoundError(animal_id)
         return animal
     
     def get_all_animals(self):
@@ -53,13 +52,13 @@ class AnimalManager:
 
     def _validate_name(self, name):
         if not name or not name.strip():
-            raise ValueError("名前を空白にはできません")
+            raise ValidationError("name_empty")
         if len(name) > 20:
-            raise ValueError("名前は20文字以内で入力してください")
+            raise ValidationError("name_too_long")
 
     def add_animal(self, animal_type, name):
         target = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
-        if target is None: raise ValueError("無効な種類の動物です")
+        if target is None: raise ValidationError("invalid_animal_type")
         
         self._validate_name(name)
         self.id_counter += 1
@@ -70,9 +69,9 @@ class AnimalManager:
 
     def add_random_animal(self, count):
         if not isinstance(count, int):
-            raise ValueError("追加回数は整数で指定してください")
+            raise ValidationError("require_int")
         if count <= 0:
-            raise ValueError("追加回数は1以上を指定してください")
+            raise ValidationError("require_positive_int")
         
         added_animals = []
         for _ in range(count):
@@ -93,14 +92,14 @@ class AnimalManager:
             "ability": self._edit_animal_ability,
         }
         if attr not in edit_map:
-            raise ValueError("無効な属性です")
+            raise ValidationError("invalid_selection")
         return edit_map[attr](animal_id, new_value)
 
     def _edit_animal_type(self, animal_id, new_type):
         target_animal = self.get_animal(animal_id)
         
         if new_type not in animal.AVAILABLE_ANIMAL_TYPES:
-            raise ValueError("無効な種類の動物です")
+            raise ValidationError("invalid_animal_type")
 
         cls = animal.AVAILABLE_ANIMAL_TYPES[new_type]
         new_animal = cls(target_animal.id, target_animal.name)
@@ -117,7 +116,7 @@ class AnimalManager:
     def _edit_animal_ability(self, animal_id, new_ability):
         target_animal = self.get_animal(animal_id)
         if new_ability not in animal.AVAILABLE_ABILITIES:
-            raise ValueError("無効な特技です")
+            raise ValidationError("invalid_ability")
             
         target_animal.ex_ability[new_ability] = dict(animal.AVAILABLE_ABILITIES[new_ability])
         return target_animal
@@ -127,7 +126,7 @@ class AnimalManager:
         if not action_name:
             return []
         if action_name not in self.ALLOWED_ACTIONS:
-            raise ValueError(f"無効なアクションです: {action_name}")
+            raise ValidationError("invalid_action")
 
         # アクション名が AVAILABLE_ABILITIES に存在すれば、それを必須特技とする
         # voice などの基本アクションは required_ability が None になる
@@ -146,7 +145,7 @@ class AnimalManager:
 
     def sort_list(self, target_list, category):
         if category not in self.ALLOWED_SORT_KEYS:
-            raise ValueError(f"ソートできない属性です: {category}")
+            raise ValidationError("invalid_sort_key")
         return sorted(target_list, key=lambda a: getattr(a, category)) 
 
     def clear_data(self):
@@ -157,8 +156,8 @@ class AnimalManager:
 
     def search_animal(self, attr, keyword):
         """キーワードと属性で動物を検索する"""
-        if attr != "すべて" and attr not in self.SEARCH_MAP:
-            raise ValueError(f"無効な検索属性です: {attr}")
+        if attr != "all" and attr not in self.SEARCH_MAP:
+            raise ValidationError("invalid_search_attr")
 
         if not keyword:
             return sorted(self.animals.values(), key=lambda x: x.id)
@@ -166,7 +165,7 @@ class AnimalManager:
         keyword = keyword.lower()
         results = []
         for a in self.animals.values():
-            if attr == "すべて":
+            if attr == "all":
                 values = []
                 for getter in self.SEARCH_MAP.values():
                     values.extend(getter(a))
