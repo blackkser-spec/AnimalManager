@@ -1,7 +1,9 @@
 import json
 import pytest
 import copy
+from unittest.mock import patch
 from core.animal_repository import AnimalRepository
+from core.exceptions import SaveError, LoadError
 
 # testで使用する仮Animalデータ
 @pytest.fixture
@@ -36,23 +38,22 @@ class TestSave:
         invalid_data = copy.deepcopy(valid_data)
         invalid_data["id_counter"] = "invalid_type"
         # Act & Assert: Pydanticのバリデーション失敗を期待
-        with pytest.raises(ValueError, match="保存データの形式が正しくありません"):
+        with pytest.raises(SaveError) as e:
             repo.save(invalid_data)
+        assert e.value.key == "invalid_save_data"
+        assert not file.exists()
 
-    def test_os_error(self, tmp_path, valid_data, monkeypatch):
+    def test_os_error(self, tmp_path, valid_data):
         # Arrange
         file = tmp_path / "test.json"
         repo = AnimalRepository(file)
-        # Errorを発生させるダミー関数を定義
-        def mock_open(*args, **kwargs):
-            raise OSError
+        with patch("builtins.open", side_effect=OSError):
+            # Act & Assert
+            with pytest.raises(SaveError) as e:
+                repo.save(valid_data)
 
-        monkeypatch.setattr("builtins.open", mock_open)
-
-        # Act & Assert
-        with pytest.raises(IOError):
-            repo.save(valid_data)
-        assert not file.exists()  # 失敗した時はファイルが作られていないことを確認
+        assert e.value.key == "save_error"
+        assert not file.exists() 
 
 
 class TestLoad:
@@ -74,6 +75,19 @@ class TestLoad:
         # Act & Assert
         assert repo.load() is None
 
+    def test_os_error(self, tmp_path):
+        # Arrange
+        file = tmp_path / "test.json"
+        file.write_text("{}", encoding="UTF-8")
+        repo = AnimalRepository(file)
+
+        with patch("builtins.open", side_effect=OSError):
+            # Act & Assert
+            with pytest.raises(LoadError) as e:
+                repo.load()
+
+        assert e.value.key == "load_error"
+
     def test_json_broken(self, tmp_path):
         # Arrange
         file = tmp_path / "test.json"
@@ -82,12 +96,13 @@ class TestLoad:
         with open(file, "w", encoding="UTF-8") as f:
             f.write("broken json")
         # Act & Assert
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(LoadError) as e:
             repo.load()
-
+        assert e.value.key == "file_broken_moved"
+        
         broken_file = tmp_path / "test_broken.json"
+        assert not file.exists()
         assert broken_file.exists()
-        assert "データファイル破損のため" in str(e.value)
     
     def test_validation_error(self, tmp_path, valid_data):
         # Arrange
@@ -99,9 +114,10 @@ class TestLoad:
         with open(file, "w", encoding="UTF-8") as f:
             json.dump(invalid_data, f)
         # Act & Assert
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(LoadError) as e:
             repo.load()
-
+        assert e.value.key == "file_broken_moved"
+        
         broken_file = tmp_path / "test_broken.json"
+        assert not file.exists()
         assert broken_file.exists()
-        assert "データの不整合" in str(e.value)
