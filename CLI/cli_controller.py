@@ -138,7 +138,7 @@ class CliController:
             return FlowResult.TO_BACK
         try:
             self.manager.add_animal(animal_type, name)
-            self.menu_printer.print_success("animal_added")
+            self.menu_printer.print_success("animal_added", animal_type=animal_type, name=name)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -153,9 +153,9 @@ class CliController:
 
         try:
             added_animals = self.manager.add_random_animal(count)
-            self.menu_printer.print_success("random_animals_added", count=count)
             for animal in added_animals:
-                self.menu_printer.print_success("animal_added", type_jp=animal.type_jp, name=animal.name)
+                self.menu_printer.print_success("animal_added", animal_type=animal.animal_type, name=animal.name)
+            self.menu_printer.print_success("random_animals_added", count=count)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -253,8 +253,12 @@ class CliController:
 
         try:
             results = self.manager.act_animal(action_name)
-            for result in results:
-                self.menu_printer.print_message(result)
+            for res in results:
+                self.menu_printer.print_action_result(
+                    action_key=res["action_key"],
+                    animal_type=res["animal"].animal_type,
+                    name=res["animal"].name
+                )
             # {len(results)} 件の行動を実行しました
             self.menu_printer.print_success("actions_performed", count=len(results))
             return FlowResult.TO_MAIN
@@ -273,20 +277,20 @@ class CliController:
             return FlowResult.TO_MAIN
     
     def sort_list_flow(self):
-        category_keys = self.manager.ALLOWED_SORT_KEYS
+        sort_keys = self.manager.ALLOWED_SORT_KEYS
 
-        self.menu_printer.print_inline_options("sort_choice_header", category_keys)
-        category = self._prompt_for_choice(category_keys)
-        if category is None:
+        self.menu_printer.print_inline_options("sort_choice_header", sort_keys)
+        sort_key = self._prompt_for_choice(sort_keys)
+        if sort_key is None:
             self.menu_printer.print_cancel("sort_cancelled")
             return FlowResult.TO_BACK
 
         try:
             target_list = self.manager.get_all_animals()
-            sorted_list = self.manager.sort_list(target_list, category)
+            sorted_list = self.manager.sort_list(target_list, sort_key)
             self.menu_printer.print_animal_list(sorted_list) # type: ignore
             # {category} 順にソートしました
-            self.menu_printer.print_success("list_sorted", category=category)
+            self.menu_printer.print_success("list_sorted", sort_key=sort_key)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -406,7 +410,7 @@ class CliController:
 
     def _validate_animal_type(self, text):
         types = self.manager.get_available_animal_types()
-        return self._validate_selection_from_list(text, types, "invalid_value")
+        return self._validate_selection_from_list(text, types, "invalid_animal_type")
 
     def _validate_ability(self, text):
         abilities = self.manager.get_available_abilities()

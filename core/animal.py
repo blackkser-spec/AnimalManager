@@ -1,86 +1,69 @@
 class Animal:
-    def __init__(self, id, name, type_en=None, type_jp=None, ability=None, ex_ability=None, voice_msg=None):
+    def __init__(self, id, name, animal_type=None, ability=None, ex_ability=None):
         self.id          = id
         self.name        = name
-        self.type_en     = type_en        
-        self.type_jp     = type_jp
-        self.ability     = ability or {}
-        self.ex_ability  = ex_ability or {}
-        self.voice_msg   = voice_msg
+        self.animal_type = animal_type
+        self.ability     = ability or set()
+        self.ex_ability  = ex_ability or set()
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
-            "type_en": self.type_en,
-            "type_jp": self.type_jp,
-            "ex_ability": self.ex_ability
+            "animal_type": self.animal_type,
+            "ex_ability": list(self.ex_ability)
         }
 
     @classmethod
     def from_dict(cls, data):
         instance = cls(data["id"], data["name"])
-        instance.ex_ability = dict(data.get("ex_ability", {}))
+        instance.ex_ability = set(data.get("ex_ability", []))
         return instance
 
     def get_all_ability(self):
-        combined = dict(self.ability)
-        combined.update(self.ex_ability)
-        return combined
+        return self.ability | self.ex_ability
 
     def has_ability(self, ability_name):
-        if ability_name not in self.get_all_ability():
-            return False
-        return True
+        return ability_name in self.get_all_ability()
     
-    def voice(self):
-        return f"{self.name} は{self.voice_msg}"
+    def sound(self):
+        return "sound" if self.has_ability("sound") else None
 
     def fly(self):
-        fly_data = self.get_all_ability().get("fly")
-        if fly_data:
-            return f"{self.name} は{fly_data['msg']}"
-        return None
+        return "fly" if self.has_ability("fly") else None
+
     def swim(self):
-        swim_data = self.get_all_ability().get("swim")
-        if swim_data:
-            return f"{self.name} は{swim_data['msg']}"
-        return None
+        return "swim" if self.has_ability("swim") else None
 
 class Bird(Animal):
     def __init__(self, id, name):
-        super().__init__(id, name, type_en="bird", type_jp="鳥",
-                         ability  ={"fly":{"msg": "空高く飛んでいる"}},
-                         voice_msg="チュンチュンと鳴いた")
+        super().__init__(id, name, animal_type="bird",
+                         ability  ={"sound", "fly"})
 
 class Cat(Animal):
     def __init__(self, id, name):
-        super().__init__(id, name, type_en="cat", type_jp="猫",
-                         voice_msg="ニャアと鳴いた")
+        super().__init__(id, name, animal_type="cat",
+                         ability  ={"sound"})
 
 class Dog(Animal):
     def __init__(self, id, name):
-        super().__init__(id, name, type_en="dog", type_jp="犬",
-                         voice_msg="ワンワンと吠えた")
+        super().__init__(id, name, animal_type="dog",
+                         ability  ={"sound"})
 
 class Duck(Animal):
     def __init__(self, id, name):
-        super().__init__(id, name, type_en="duck", type_jp="アヒル",
-                         ability={"fly":{"msg":"低空を飛んでいる"},
-                                  "swim":{"msg":"水面を漂うように泳いでいる"}},
-                         voice_msg="ガアガアと鳴いた")
+        super().__init__(id, name, animal_type="duck",
+                         ability  ={"sound", "fly", "swim"})
 
 class Fish(Animal):
     def __init__(self, id, name):
-        super().__init__(id, name, type_en="fish", type_jp="魚",
-                         ability={"swim":{"msg":"静かに水中を泳いでいる"}},
-                         voice_msg="静かにしている")
+        super().__init__(id, name, animal_type="fish",
+                         ability  ={"swim"})
 
 class Penguin(Animal):
     def __init__(self, id, name):
-        super().__init__(id, name, type_en="penguin", type_jp="ペンギン",
-                         ability={"swim":{"msg":"水中を泳いでいる"}},
-                         voice_msg="ぷーぷーと鳴いた")
+        super().__init__(id, name, animal_type="penguin",
+                         ability  ={"sound", "swim"})
 
 AVAILABLE_ANIMAL_TYPES = {
     "bird": Bird,
@@ -93,6 +76,7 @@ AVAILABLE_ANIMAL_TYPES = {
 
 # システムがサポートする特技の定義
 AVAILABLE_ABILITIES = {
-    "fly": {"msg": "空を飛んでいる"},
-    "swim": {"msg": "水中を泳いでいる"},
+    "sound",
+    "fly",
+    "swim",
 }

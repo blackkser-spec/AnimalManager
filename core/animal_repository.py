@@ -1,5 +1,6 @@
 import json
 import os
+import datetime
 from pydantic import BaseModel, ValidationError as PydanticValidationError, Field
 from core.exceptions import LoadError, SaveError
 
@@ -7,9 +8,8 @@ from core.exceptions import LoadError, SaveError
 class AnimalSchema(BaseModel):
     id: int
     name: str
-    type_en: str
-    type_jp: str
-    ex_ability: dict = Field(default_factory=dict)
+    animal_type: str
+    ex_ability: list[str] = Field(default_factory=list)
 
 class StorageSchema(BaseModel):
     id_counter: int
@@ -49,7 +49,8 @@ class AnimalRepository:
             except (json.JSONDecodeError, PydanticValidationError) as e:
                 # 破損している場合はリネームして通知する（例外を投げる）
                 base, ext = os.path.splitext(self.file_path)
-                broken_path = f"{base}_broken{ext}"
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                broken_path = f"{base}_broken_{timestamp}{ext}"
                 os.rename(self.file_path, broken_path)
                 
                 reason_key = "json_syntax_error" if isinstance(e, json.JSONDecodeError) else "data_inconsistency"

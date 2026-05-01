@@ -26,7 +26,7 @@ class TestAddAnimal:
         # Act
         animal = manager.add_animal(animal_type, name)
         # Assert
-        assert animal.type_en == animal_type
+        assert animal.animal_type == animal_type
         assert animal.name == name
         assert animal.id in manager.animals
         assert len(manager.animals) == 1
@@ -79,7 +79,7 @@ class TestGetAnimal:
         # Act
         result = manager.get_animal(original.id)
         # Assert
-        assert result.type_jp == "鳥"
+        assert result.animal_type == "bird"
         assert result.name == "get_Bird"
 
     def test_failure(self, manager):
@@ -145,7 +145,7 @@ class TestEditAnimal:
         assert edited is not original
         assert edited.id == original.id
         assert manager.get_animal(original.id) is edited
-        assert edited.type_jp == "猫"
+        assert edited.animal_type == "cat"
 
     def test_edit_type_failure(self, manager):
         # Arrange
@@ -216,7 +216,7 @@ class TestEditAnimal:
 
 class TestActAnimal:
     @pytest.mark.parametrize("action, expected_count", [
-        ("voice", 2), # 両方鳴ける
+        ("sound", 2), # 両方鳴ける
         ("fly", 2),   # 両方飛べる
         ("swim", 1),  # Duckのみ泳げる
     ])
@@ -242,7 +242,6 @@ class TestSearchAnimal:
         # Act & Assert
         assert len(manager.search_animal("name", "search")) == 1
         assert len(manager.search_animal("type", "cat")) == 1
-        assert len(manager.search_animal("type", "猫")) == 1
         assert len(manager.search_animal("ability", "fly")) == 0
         assert len(manager.search_animal("all", "search")) == 1
 
@@ -261,8 +260,7 @@ class TestSortList:
     @pytest.mark.parametrize("attr", [
         "id",
         "name",
-        "type_en",
-        "type_jp",])
+        "animal_type",])
     def test_success(self, manager, attr):
         # Arrange
         manager.add_random_animal(5)

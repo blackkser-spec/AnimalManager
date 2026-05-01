@@ -12,7 +12,7 @@ def valid_data():
         "id_counter": 2,
         "naming_count": {"cat": 1},
         "animals": [
-            {"id": 1, "name": "Tama", "type_en": "cat", "type_jp": "猫", "ex_ability": {}}]
+            {"id": 1, "name": "Tama", "animal_type": "cat", "ex_ability": []}]
     }
 
 
@@ -100,9 +100,8 @@ class TestLoad:
             repo.load()
         assert e.value.key == "file_broken_moved"
         
-        broken_file = tmp_path / "test_broken.json"
         assert not file.exists()
-        assert broken_file.exists()
+        assert any(tmp_path.glob("test_broken_*.json"))
     
     def test_validation_error(self, tmp_path, valid_data):
         # Arrange
@@ -118,6 +117,5 @@ class TestLoad:
             repo.load()
         assert e.value.key == "file_broken_moved"
         
-        broken_file = tmp_path / "test_broken.json"
         assert not file.exists()
-        assert broken_file.exists()
+        assert any(tmp_path.glob("test_broken_*.json"))

@@ -455,27 +455,26 @@ class TestShowAnimalListFlow:
 
 
 class TestSortListFlow:
-    @pytest.mark.parametrize("sort_index, expected_category", [
+    @pytest.mark.parametrize("sort_index, expected_sort_key", [
         ("1", "id"),
-        ("2", "type_en"),
-        ("3", "type_jp"),
-        ("4", "name")
+        ("2", "animal_type"),
+        ("3", "name")
     ])
-    def test_success(self, cli_controller, mock_manager, sort_index, expected_category):
+    def test_success(self, cli_controller, mock_manager, sort_index, expected_sort_key):
         # Arrange
         mock_list = [MagicMock()]
         sorted_mock_list = [MagicMock()]
         mock_manager.get_all_animals.return_value = mock_list
         mock_manager.sort_list.return_value = sorted_mock_list
-        mock_manager.ALLOWED_SORT_KEYS = ["id", "type_en", "type_jp", "name"]
+        mock_manager.ALLOWED_SORT_KEYS = ["id", "animal_type", "name"]
         cli_controller._get_raw_input.return_value = sort_index
         # Act
         cli_controller.sort_list_flow()
         # Assert
         mock_manager.get_all_animals.assert_called_once()
-        mock_manager.sort_list.assert_called_with(mock_list, expected_category)
+        mock_manager.sort_list.assert_called_with(mock_list, expected_sort_key)
         cli_controller.menu_printer.print_animal_list.assert_called_once_with(sorted_mock_list)
-        cli_controller.menu_printer.print_success.assert_called_with("list_sorted", category=expected_category)
+        cli_controller.menu_printer.print_success.assert_called_with("list_sorted", sort_key=expected_sort_key)
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange

@@ -5,12 +5,12 @@ import random
 class AnimalManager:
     SEARCH_MAP = {
         "id": lambda a: [str(a.id)],
-        "type": lambda a: [(a.type_en or "").lower(), (a.type_jp or "")],
+        "type": lambda a: [(a.animal_type or "").lower()],
         "name": lambda a: [a.name.lower()],
-        "ability": lambda a: list(a.get_all_ability().keys())
+        "ability": lambda a: list(a.get_all_ability())
     }
-    ALLOWED_SORT_KEYS = ["id", "type_en", "type_jp", "name"]
-    ALLOWED_ACTIONS = ["voice", "fly", "swim"]
+    ALLOWED_SORT_KEYS = ["id", "animal_type", "name"]
+    ALLOWED_ACTIONS = ["sound", "fly", "swim"]
     EDITABLE_ATTRIBUTES = ["type", "name", "ability"]
     
     def __init__(self, repository):
@@ -48,7 +48,7 @@ class AnimalManager:
         return list(animal.AVAILABLE_ANIMAL_TYPES.keys())
 
     def get_available_abilities(self):
-        return list(animal.AVAILABLE_ABILITIES.keys())
+        return list(animal.AVAILABLE_ABILITIES)
 
     def _validate_name(self, name):
         if not name or not name.strip():
@@ -118,7 +118,7 @@ class AnimalManager:
         if new_ability not in animal.AVAILABLE_ABILITIES:
             raise ValidationError("invalid_ability")
             
-        target_animal.ex_ability[new_ability] = dict(animal.AVAILABLE_ABILITIES[new_ability])
+        target_animal.ex_ability.add(new_ability)
         return target_animal
 
     def act_animal(self, action_name):
@@ -127,26 +127,27 @@ class AnimalManager:
             return []
         if action_name not in self.ALLOWED_ACTIONS:
             raise ValidationError("invalid_action")
-
-        # アクション名が AVAILABLE_ABILITIES に存在すれば、それを必須特技とする
-        # voice などの基本アクションは required_ability が None になる
+        # 共通ability用 require
         required_ability = action_name if action_name in animal.AVAILABLE_ABILITIES else None
 
         results = [] 
         for a in self.animals.values():
-            # 必要な能力を持っているか、または能力が不要な行動（voiceなど）かを確認
+            # 必要な能力を持っているか
             if required_ability is None or a.has_ability(required_ability):
                 if hasattr(a, action_name):
                     method = getattr(a, action_name) 
                     result = method()
                     if result:
-                        results.append(result)
+                        results.append({
+                            "animal": a,
+                            "action_key": result
+                        })
         return results
 
-    def sort_list(self, target_list, category):
-        if category not in self.ALLOWED_SORT_KEYS:
+    def sort_list(self, target_list, sort_key):
+        if sort_key not in self.ALLOWED_SORT_KEYS:
             raise ValidationError("invalid_sort_key")
-        return sorted(target_list, key=lambda a: getattr(a, category)) 
+        return sorted(target_list, key=lambda a: getattr(a, sort_key)) 
 
     def clear_data(self):
         self.animals.clear()
@@ -194,14 +195,12 @@ class AnimalManager:
 
     def _restore_counters(self, data):
         self.id_counter = data.get("id_counter", 0)
-        loaded_count = data.get("naming_count", {})
-        for key in self.naming_count:
-            if key in loaded_count:
-                self.naming_count[key] = loaded_count[key]
+        self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
+        self.naming_count.update(data.get("naming_count", {}))
 
     def _restore_animals(self, animal_data_list):
         for item in animal_data_list:
-            animal_type = item.get("type_en")
+            animal_type = item.get("animal_type")
             if not animal_type:
                 continue
 
