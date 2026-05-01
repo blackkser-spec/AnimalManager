@@ -308,7 +308,7 @@ class TestAddAnimalFlow:
         # Assert
         assert result == FlowResult.TO_MAIN
         mock_manager.add_animal.assert_called_once_with("cat", "Tama")
-        cli_controller.menu_printer.print_success.assert_called_with("animal_added")
+        cli_controller.menu_printer.print_success.assert_called_with("animal_added", animal_type="cat", name="Tama")
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
