@@ -52,7 +52,7 @@ class RemoteBackend:
     
     def is_valid_action(self, choice):
         # 将来的にAPI側から可能なアクションを取得するように拡張も可能
-        ALLOWED_ACTIONS = {"voice", "fly", "swim"}
+        ALLOWED_ACTIONS = {"sound", "fly", "swim"}
         return choice in ALLOWED_ACTIONS
     
     def execute_search(self, attribute, keyword):
@@ -69,13 +69,12 @@ class RemoteBackend:
         return AnimalDTO(
             id       = item.get("id", 0),
             name     = item.get("name", "Unknown"),
-            type_en  = item.get("type_en", "unknown"),
-            type_jp  = item.get("type_jp", "不明"),
-            abilities= list(item.get("abilities", {}).keys())
+            animal_type  = item.get("animal_type", "unknown"),
+            abilities= list(item.get("abilities", {}))
         )
 
     def execute_load(self):
-        return self.execute_search("すべて", "")
+        return self.execute_search("all", "")
         
     def save(self):
         return "APIモードは自動保存の為 この機能は制限されています"

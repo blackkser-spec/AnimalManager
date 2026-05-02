@@ -80,7 +80,7 @@ class CliController:
                 prompt=self.menu_printer.get_text("prompts", "select_search_attr")
             )
             if attr is None:
-                self.menu_printer.print_cancel("search_finished")
+                self.menu_printer.print_cancel("search_reverted")
                 return FlowResult.TO_MAIN
             # input
             keyword = self._prompt_for_input(
@@ -94,7 +94,7 @@ class CliController:
                 results = self.manager.search_animal(attr, keyword)
                 if results:
                     self.menu_printer.print_animal_list(results)
-                    self.menu_printer.print_success("search", count=len(results))
+                    self.menu_printer.print_success("search_completed", count=len(results))
                 else:
                     self.menu_printer.print_error("search_not_found")
                 return FlowResult.TO_MAIN

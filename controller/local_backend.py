@@ -36,9 +36,8 @@ class LocalBackend:
         return AnimalDTO(
             id       = animal.id,
             name     = animal.name,
-            type_en  = animal.type_en,
-            type_jp  = animal.type_jp,
-            abilities= list(animal.get_all_ability().keys())
+            animal_type  = animal.animal_type,
+            abilities= list(animal.get_all_ability())
         )
 
     def execute_load(self):

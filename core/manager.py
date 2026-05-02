@@ -5,58 +5,58 @@ import random
 class AnimalManager:
     SEARCH_MAP = {
         "id": lambda a: [str(a.id)],
-        "type": lambda a: [(a.animal_type or "").lower()],
+        "animal_type": lambda a: [(a.animal_type or "").lower()],
         "name": lambda a: [a.name.lower()],
         "ability": lambda a: list(a.get_all_ability())
     }
-    ALLOWED_SORT_KEYS = ["id", "animal_type", "name"]
-    ALLOWED_ACTIONS = ["sound", "fly", "swim"]
-    EDITABLE_ATTRIBUTES = ["type", "name", "ability"]
+    ALLOWED_SORT_KEYS: list[str] = ["id", "animal_type", "name"]
+    ALLOWED_ACTIONS: list[str] = ["sound", "fly", "swim"]
+    EDITABLE_ATTRIBUTES: list[str] = ["type", "name", "ability"]
     
-    def __init__(self, repository):
+    def __init__(self, repository) -> None:
         self.repository = repository
-        self.id_counter = 0
-        self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
-        self.animals = {}
+        self.id_counter: int = 0
+        self.naming_count: dict[str, int] = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
+        self.animals: dict[int, animal.Animal] = {}
         self._refresh_initial_state()
 
-    def _get_serializable_data(self):
+    def _get_serializable_data(self) -> dict[str, object]:
         """現在のマネージャの状態を辞書形式で取得する"""
         animal_list = []
         for a in self.animals.values():
             animal_list.append(a.to_dict())
         return {"id_counter": self.id_counter, "naming_count": self.naming_count, "animals": animal_list}
 
-    def _refresh_initial_state(self):
+    def _refresh_initial_state(self) -> None:
         self.initial_state_data = self._get_serializable_data()
 
-    def is_changed(self):
+    def is_changed(self) -> bool:
         return self.initial_state_data != self._get_serializable_data()
     
     # --- get method ---
     
-    def get_animal(self, animal_id, raise_error=True):
-        animal = self.animals.get(animal_id)
-        if raise_error and animal is None:
+    def get_animal(self, animal_id: int, raise_error: bool = True) -> animal.Animal | None:
+        target_animal = self.animals.get(animal_id)
+        if raise_error and target_animal is None:
             raise AnimalNotFoundError(animal_id)
-        return animal
+        return target_animal
     
-    def get_all_animals(self):
+    def get_all_animals(self) -> list[animal.Animal]:
         return sorted(self.animals.values(), key=lambda x: x.id)    
 
-    def get_available_animal_types(self):
+    def get_available_animal_types(self) -> list[str]:
         return list(animal.AVAILABLE_ANIMAL_TYPES.keys())
 
-    def get_available_abilities(self):
+    def get_available_abilities(self) -> list[str]:
         return list(animal.AVAILABLE_ABILITIES)
 
-    def _validate_name(self, name):
+    def _validate_name(self, name: str) -> None:
         if not name or not name.strip():
             raise ValidationError("name_empty")
         if len(name) > 20:
             raise ValidationError("name_too_long")
 
-    def add_animal(self, animal_type, name):
+    def add_animal(self, animal_type: str, name: str) -> animal.Animal:
         target = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
         if target is None: raise ValidationError("invalid_animal_type")
         
@@ -67,7 +67,7 @@ class AnimalManager:
 
         return animal_instance
 
-    def add_random_animal(self, count):
+    def add_random_animal(self, count: int) -> list[animal.Animal]:
         if not isinstance(count, int):
             raise ValidationError("require_int")
         if count <= 0:
@@ -81,11 +81,13 @@ class AnimalManager:
             added_animals.append(self.add_animal(animal_type, name))
         return added_animals
 
-    def remove_animal(self, animal_id):
+    def remove_animal(self, animal_id: int) -> animal.Animal:
+        if not isinstance(animal_id, int):
+            raise ValidationError("require_int")
         self.get_animal(animal_id)
         return self.animals.pop(animal_id)
     
-    def edit_animal(self, animal_id, attr, new_value):
+    def edit_animal(self, animal_id: int, attr: str, new_value: str) -> animal.Animal:
         edit_map = {
             "type": self._edit_animal_type,
             "name": self._edit_animal_name,
@@ -95,7 +97,7 @@ class AnimalManager:
             raise ValidationError("invalid_attribute")
         return edit_map[attr](animal_id, new_value)
 
-    def _edit_animal_type(self, animal_id, new_type):
+    def _edit_animal_type(self, animal_id: int, new_type: str) -> animal.Animal:
         target_animal = self.get_animal(animal_id)
         
         if new_type not in animal.AVAILABLE_ANIMAL_TYPES:
@@ -107,13 +109,13 @@ class AnimalManager:
         self.animals[target_animal.id] = new_animal
         return new_animal
     
-    def _edit_animal_name(self, animal_id, new_name):
+    def _edit_animal_name(self, animal_id: int, new_name: str) -> animal.Animal:
         target_animal = self.get_animal(animal_id)
         self._validate_name(new_name)
         target_animal.name = new_name
         return target_animal
 
-    def _edit_animal_ability(self, animal_id, new_ability):
+    def _edit_animal_ability(self, animal_id: int, new_ability: str) -> animal.Animal:
         target_animal = self.get_animal(animal_id)
         if new_ability not in animal.AVAILABLE_ABILITIES:
             raise ValidationError("invalid_ability")
@@ -121,7 +123,7 @@ class AnimalManager:
         target_animal.ex_ability.add(new_ability)
         return target_animal
 
-    def act_animal(self, action_name):
+    def act_animal(self, action_name: str) -> list[dict]:
         """指定された行動を、可能な全ての動物に実行させる"""
         if not action_name:
             return []
@@ -144,18 +146,18 @@ class AnimalManager:
                         })
         return results
 
-    def sort_list(self, target_list, sort_key):
+    def sort_list(self, target_list: list[animal.Animal], sort_key: str) -> list[animal.Animal]:
         if sort_key not in self.ALLOWED_SORT_KEYS:
             raise ValidationError("invalid_sort_key")
         return sorted(target_list, key=lambda a: getattr(a, sort_key)) 
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         self.animals.clear()
         self.id_counter = 0
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self._refresh_initial_state()
 
-    def search_animal(self, attr, keyword):
+    def search_animal(self, attr: str, keyword: str) -> list[animal.Animal]:
         """キーワードと属性で動物を検索する"""
         if attr != "all" and attr not in self.SEARCH_MAP:
             raise ValidationError("invalid_search_attr")
@@ -178,12 +180,12 @@ class AnimalManager:
                 
         return sorted(results, key=lambda x: x.id)
 
-    def save_to_file(self):
+    def save_to_file(self) -> None:
         data = self._get_serializable_data()
         self.repository.save(data)
         self._refresh_initial_state()
 
-    def load_from_file(self):
+    def load_from_file(self) -> None:
         data = self.repository.load()
         if data is None:
             return
@@ -193,12 +195,12 @@ class AnimalManager:
         self._restore_animals(data.get("animals", []))
         self._refresh_initial_state()
 
-    def _restore_counters(self, data):
+    def _restore_counters(self, data: dict) -> None:
         self.id_counter = data.get("id_counter", 0)
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self.naming_count.update(data.get("naming_count", {}))
 
-    def _restore_animals(self, animal_data_list):
+    def _restore_animals(self, animal_data_list: list[dict]) -> None:
         for item in animal_data_list:
             animal_type = item.get("animal_type")
             if not animal_type:

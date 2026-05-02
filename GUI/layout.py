@@ -2,10 +2,12 @@ import tkinter   as tk
 from tkinter import ttk
 from controller.controller import Controller
 from core.manager import AnimalManager
+from text.loader import get_text
 
 class Layout:
     def __init__(self, root, use_mode=None):
         self.use_mode = use_mode
+        self.text = get_text()
         if not self.use_mode:
             root.destroy()
             return
@@ -20,7 +22,7 @@ class Layout:
 
         self.root = root
         self.root.geometry("600x400+200+100")
-        self.root.title("Tkinter Test")
+        self.root.title(self.text["title"]["title"])
         self.root.resizable(False,False)
         self.root.protocol("WM_DELETE_WINDOW", self.ctrl.on_close)
         
@@ -58,10 +60,15 @@ class Layout:
 
     def _create_topleft_panel(self):
         """左パネルのボタン群を生成する"""
-        buttons = [("動物追加", self.ctrl.add), ("ランダム追加", self.ctrl.add_random),
-                   ("動物削除", self.ctrl.remove), ("動物編集", self.ctrl.edit),
-                   ("動物行動", self.ctrl.act), ("データ保存", self.ctrl.save),
-                   ("データ消去", self.ctrl.clear_data)]
+        buttons = [
+            (self.text["label"]["add"], self.ctrl.add),
+            (self.text["label"]["add_random"], self.ctrl.add_random),
+            (self.text["label"]["remove"], self.ctrl.remove),
+            (self.text["label"]["edit"], self.ctrl.edit),
+            (self.text["label"]["act"], self.ctrl.act),
+            (self.text["label"]["save"], self.ctrl.save), # 保存ボタン用
+            (self.text["label"]["clear"], self.ctrl.clear_data)
+        ]
         for i, (text, method_name) in enumerate(buttons):
             tk.Button(self.tl_frame,text=text, command=method_name, width=10).pack(expand=True, fill="both")
 
@@ -75,7 +82,7 @@ class Layout:
         # 検索ジャンル
         self.search_attr = ttk.Combobox(
             search_frame,
-            values=["すべて","ID", "種類", "名前", "特技"],
+            values=["all","id", "animal_type", "name", "ability"],
             width=8,
             state="readonly"
         )
@@ -87,25 +94,25 @@ class Layout:
         self.search_entry.bind("<Return>", lambda event: self.ctrl.search()) # Enterキーで実行
 
         # 実行ボタン & クリアボタン
-        self.btn_search = tk.Button(search_frame, text="検索", command=self.ctrl.search, width=6, bg="#e1e1e1")
+        self.btn_search = tk.Button(search_frame, text=self.text["label"]["search"], command=self.ctrl.search, width=6, bg="#e1e1e1")
         self.btn_search.pack(side=tk.LEFT, padx=2)
-        self.btn_clear = tk.Button(search_frame, text="×", command=self.ctrl.clear_search, width=3, bg="#ffdddd")
+        self.btn_clear = tk.Button(search_frame, text=self.text["icon"]["clear"], command=self.ctrl.clear_search, width=3, bg="#ffdddd")
         self.btn_clear.pack(side=tk.LEFT, padx=(2, 8))
 
         # --- Treeviewエリア ---
         columns = ("id", "type", "name")
         self.tree_animals = ttk.Treeview(self.tr_frame, columns=columns, show="headings")
-        self.tree_animals.heading("id",   text="ID",   command=lambda: self.ctrl.sort_tree("id"))
-        self.tree_animals.heading("type", text="種類", command=lambda: self.ctrl.sort_tree("type_en"))
-        self.tree_animals.heading("name", text="名前", command=lambda: self.ctrl.sort_tree("name"))
+        self.tree_animals.heading("id",   text=self.text["headers"]["id"],   command=lambda: self.ctrl.sort_tree("id"))
+        self.tree_animals.heading("type", text=self.text["headers"]["type"], command=lambda: self.ctrl.sort_tree("animal_type"))
+        self.tree_animals.heading("name", text=self.text["headers"]["name"], command=lambda: self.ctrl.sort_tree("name"))
         self.tree_animals.column ("id",   width=10,  anchor="w")
         self.tree_animals.column ("type", width=50,  anchor="w")
         self.tree_animals.column ("name", width=200, anchor="w")
 
         self.scrollbar = tk.Scrollbar(self.tr_frame)
         self.tree_menu = tk.Menu(self.tree_animals, tearoff=0)
-        self.tree_menu.add_command(label="編集", command=self.ctrl.edit)
-        self.tree_menu.add_command(label="削除", command=self.ctrl.remove)
+        self.tree_menu.add_command(label=self.text["label"]["edit"], command=self.ctrl.edit)
+        self.tree_menu.add_command(label=self.text["label"]["remove"], command=self.ctrl.remove)
         self.tree_animals.bind("<Button-3>", self.show_tree_menu)
     
         self.tree_animals.config(yscrollcommand=self.scrollbar.set)
@@ -150,16 +157,16 @@ class Layout:
     # dialog設定
     # -----------------
     def open_add_dialog(self):
-        self.add_window = self.create_dialog("動物追加")
+        self.add_window = self.create_dialog(self.text["label"]["add"])
         #種別Combobox
-        tk.Label(self.add_window, text="種類").pack(pady=2)
+        tk.Label(self.add_window, text=self.text["headers"]["type"]).pack(pady=2)
         animal_types = self.manager.get_available_animal_types()
         self.add_type_combo = ttk.Combobox(self.add_window, values=animal_types, state="readonly")
         self.add_type_combo.pack(pady=5)
         if animal_types:
             self.add_type_combo.current(0)
         #名前Entry
-        tk.Label(self.add_window, text="名前").pack(pady=2)
+        tk.Label(self.add_window, text=self.text["headers"]["name"]).pack(pady=2)
         self.add_name_entry = tk.Entry(self.add_window)
         self.add_name_entry.pack(pady=5)
         #決定/キャンセルボタン
@@ -168,13 +175,15 @@ class Layout:
             lambda: self.ctrl.execute_add(self.add_type_combo.get(),self.add_name_entry.get()))
     
     def open_random_dialog(self):
-        self.random_window = self.create_dialog("ランダム追加")
+        self.random_window = self.create_dialog(self.text["label"]["add_random"])
         #個数Entry
-        tk.Label(self.random_window, text="追加する回数").pack(pady=5)
+        tk.Label(self.random_window, text=self.text["label"]["random_count"]).pack(pady=5)
         frame = tk.Frame(self.random_window)
         frame.pack(pady=5)
 
-        buttons = [(" 1回", 1), (" 5回", 5), ("10回", 10)]
+        buttons = [(self.text["label"]["count_1"], 1), 
+                   (self.text["label"]["count_5"], 5), 
+                   (self.text["label"]["count_10"],10)]
         for i, (text, count) in enumerate(buttons):
             tk.Button(
                 frame,
@@ -182,18 +191,20 @@ class Layout:
                 command=lambda c=count: self.ctrl.execute_add_random(c),
                 width=8
                 ).grid(row=0, column=i, padx=1)
-        tk.Button(self.random_window, text="キャンセル",
+        tk.Button(self.random_window, text=self.text["confirm"]["cancel"],
             command=self.random_window.destroy,
             width=8).pack(side=tk.BOTTOM, pady=10)
             
     def open_edit_dialog(self, animal_id):
-        self.edit_window = self.create_dialog("登録情報編集", height=200)
+        self.edit_window = self.create_dialog(self.text["label"]["edit"], height=200)
         self.edit_target_id = animal_id
         # 編集項目combobox
-        ttk.Label(self.edit_window, text="編集項目").pack(pady=1)
+        ttk.Label(self.edit_window, text=self.text["label"]["edit_item"]).pack(pady=1)
+        
+        edit_modes = list(self.text["label"]["edit_modes"].values())
         self.edit_target = ttk.Combobox(
             self.edit_window,
-            values=["種類の変更", "名前の変更", "特技の変更"],
+            values=edit_modes,
             state="readonly"
         )
         self.edit_target.pack(pady=5)
@@ -205,17 +216,17 @@ class Layout:
         editor_frame.pack(pady=5, fill="x", expand=True)
 
         # type
-        type_label = ttk.Label(editor_frame, text="変更後の動物の種類")
+        type_label = ttk.Label(editor_frame, text=self.text["label"]["new_type"])
         self.type_combo = ttk.Combobox(
             editor_frame,
             values=self.manager.get_available_animal_types(),
             state="readonly"
         )
         # name
-        name_label = ttk.Label(editor_frame, text="変更後の動物の名前")
+        name_label = ttk.Label(editor_frame, text=self.text["label"]["new_name"])
         self.name_entry = tk.Entry(editor_frame)
         # ability
-        ability_label = ttk.Label(editor_frame, text="追加する特技")
+        ability_label = ttk.Label(editor_frame, text=self.text["label"]["new_ability"])
         self.ability_combo = ttk.Combobox(
             editor_frame,
             values=self.manager.get_available_abilities(),
@@ -223,10 +234,11 @@ class Layout:
         )
 
         # ウィジェットを辞書で管理
+        modes = self.text["label"]["edit_modes"]
         self.edit_widgets = {
-            "種類の変更": (type_label, self.type_combo),
-            "名前の変更": (name_label, self.name_entry),
-            "特技の変更": (ability_label, self.ability_combo)
+            modes["type"]: (type_label, self.type_combo),
+            modes["name"]: (name_label, self.name_entry),
+            modes["ability"]: (ability_label, self.ability_combo)
         }
 
         # 決定・キャンセルボタン (下部に固定配置)
@@ -246,11 +258,11 @@ class Layout:
             field.pack(pady=5)
 
     def open_act_dialog(self):
-        self.act_window = self.create_dialog("動物を行動させる")
-        ttk.Label(self.act_window,text="行動の種類").pack(pady=1)
+        self.act_window = self.create_dialog(self.text["label"]["act"])
+        ttk.Label(self.act_window,text=self.text["label"]["act_type"]).pack(pady=1)
         self.act_target = ttk.Combobox(
             self.act_window,
-            values=["voice", "fly", "swim"],
+            values=self.manager.ALLOWED_ACTIONS,
             state="readonly"
         )
         self.act_target.pack(pady=5)
@@ -265,11 +277,11 @@ class Layout:
     def create_ok_cancel_btn(self, parent, ok_cmd):
         btn_frame = tk.Frame(parent)
         btn_frame.pack(side=tk.BOTTOM, pady=10)
-        tk.Button(btn_frame, text="決定",
+        tk.Button(btn_frame, text=self.text["confirm"]["decision"],
                   command=ok_cmd,
                   width=8).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(btn_frame, text="キャンセル",
+        tk.Button(btn_frame, text=self.text["confirm"]["cancel"],
                   command=parent.destroy,
                   width=8).pack(side=tk.LEFT, padx=5)
 
@@ -279,8 +291,7 @@ class Layout:
             self.tree_animals.delete(item)
 
         if animals is None:
-            # 明示的にID順で取得
-            animals = sorted(self.manager.get_all_animals(), key=lambda x: x.id)
+            return
 
         for animal in animals:
-            self.tree_animals.insert("", "end", values=(animal.id, animal.type_jp, animal.name))
+            self.tree_animals.insert("", "end", values=(animal.id, animal.animal_type, animal.name))

@@ -1,13 +1,15 @@
 from cli import formatter
-from cli.text import TEXTS
+from text.loader import get_text
 
-T = TEXTS["title"]
-Ma = TEXTS["main"]
-A = TEXTS["animal"]
-L = TEXTS["list"]
-H = TEXTS["headers"]
-P = TEXTS["prompts"]
-Ac = TEXTS["actions"]
+
+TEXT = get_text()
+T = TEXT["title"]
+Ma = TEXT["main"]
+A = TEXT["manage_animal"]
+L = TEXT["manage_list"]
+H = TEXT["headers"]
+P = TEXT["prompts"]
+Ac = TEXT["actions"]
 
 def _print_numbered_line(items, color_func=lambda x: x):
     """リストを番号付きで表示する内部共通関数"""
@@ -31,7 +33,7 @@ def print_inline_options(header_key, keys):
     _print_inline_choices(keys)
 
 def print_menu():
-    print(formatter.blue(T["title"]))
+    print(formatter.blue(T["title_start"]))
     print()
     _print_numbered_line(Ma, formatter.blue)
     print()
@@ -67,7 +69,7 @@ def print_animal_list(animals):
         print(f"{id_str}{type}{name}")
 
 def get_text(section, key, /, **kwargs):
-    template = TEXTS[section][key]
+    template = TEXT[section][key]
     try:
         return template.format(**kwargs)
     except KeyError:

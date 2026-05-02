@@ -1,20 +1,61 @@
-TEXTS = {
+TEXT = {
     "title": {
-        "title": "##### Animal Manager #####",
+        "title": "Animal Manager",
+        "title_start": "##### Animal Manager #####",
         "title_end": "##########################",
     },
     "main": {
-        "manage_animal": "動物を管理",
-        "manage_list": "動物リストを管理",
+        "manage_animal": "動物の管理",
+        "manage_list": "動物リストの管理",
         "search_animal": "リストから動物を検索",
         "exit_app": "AnimalManagerを終了",
     },
-    "animal": {
+    "label": {
+        "run_option": "起動オプション",
+        "local": "ローカル(local)",
+        "remote": "リモート(remote)",
+        "add": "動物追加",
+        "add_random": "ランダム追加",
+        "random_count": "追加回数",
+        "count_1": "1回",
+        "count_5": "5回",
+        "count_10": "10回",
+        "remove": "動物削除",
+        "edit": "動物編集",
+        "edit_item": "編集項目",
+        "edit_modes": {
+            "type": "種類の変更",
+            "name": "名前の変更",
+            "ability": "特技の変更"
+        },
+        "new_type": "変更後の種類",
+        "new_name": "変更後の名前",
+        "new_ability": "変更後の特技",
+        "act": "動物行動",
+        "act_type": "実行する特技",
+        "save": "データ保存",
+        "clear": "データ消去",
+        "search": "検索",
+        "cancel": "キャンセル",
+    },
+    "languages": {
+        "jp": "日本語(JP)",
+        "en": "英語(US)",
+    },
+    "icon": {
+        "clear": "×"
+    },
+    "manage_animal": {
         "add": "動物をリストに追加",
         "add_random": "動物をランダムに追加",
         "remove": "動物をリストから削除",
         "edit": "動物の属性を変更",
         "act": "動物を行動させる",
+    },
+    "manage_list": {
+        "show": "現在のリストを表示",
+        "sort": "リストをソート",
+        "clear": "全てのデータを消去",
     },
     "actions": {
         "sound": {
@@ -34,11 +75,6 @@ TEXTS = {
             "penguin": "{name} は水中を泳いでいる",
         }
     },
-    "list": {
-        "show": "現在のリストを表示",
-        "sort": "リストをソート",
-        "clear": "全てのデータを消去",
-    },
     "headers": {
         "animal_type_list": "動物の種類一覧",
         "ability_list": "特技の一覧",
@@ -57,6 +93,8 @@ TEXTS = {
         "swim": "泳ぐ",
     },
     "prompts": {
+        "select_run_mode": "起動モードを選択してください",
+        "select_language": "言語を選択してください(choose language)",
         "select_animal_type": "動物の種類を番号または名前で入力",
         "select_action": "実行する処理のindexを入力",
         "select_search_attr": "検索項目をindexで入力",
@@ -97,8 +135,15 @@ TEXTS = {
     },
     "confirm":{
         "clear_data_confirmation":"本当に消去する場合 yes を入力してください",
+        "clear_data_gui": "本当にマネージャーのデータを消去しますか？",
+        "save_on_close": "変更内容を保存しますか？",
+        "yes": "はい",
+        "no": "いいえ",
+        "decision": "決定",
+        "cancel": "キャンセル",
     },
     "error": {
+    "error_occurred": "エラー発生: {type}: {msg}",
     "load_error": "データの読み込みに失敗しました（アクセス権限等）",
     "save_error": "データの保存に失敗しました（書き込み権限や容量不足）",
     "invalid_save_data": "保存データの形式が正しくありません",
