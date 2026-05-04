@@ -21,8 +21,14 @@ class LocalBackend:
         self.manager.edit_animal(animal_id, attr, new_value)
 
     def execute_act(self, choice):
-        results = self.manager.act_animal(choice)
-        return results
+        raw_results = self.manager.act_animal(choice)
+        return [
+        {
+            "name": item["animal"].name,
+            "animal_type": item["animal"].animal_type,
+            "action_key": item["action_key"]
+        } for item in raw_results
+    ]
     
     def is_valid_action(self, choice):
         return choice in self.manager.ALLOWED_ACTIONS
@@ -45,7 +51,7 @@ class LocalBackend:
 
     def save(self):
         self.manager.save_to_file()
-        return "ローカルデータを保存しました"
+        return True
 
     def clear_data(self):
         self.manager.clear_data()

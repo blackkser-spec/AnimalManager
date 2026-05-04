@@ -3,8 +3,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
 from . import schemas
-from core.manager import AnimalManager, AnimalNotFoundError
+from core.manager import AnimalManager
+from core.exceptions import ValidationError, AnimalNotFoundError, SaveError
 from core.animal_repository import AnimalRepository
+from api.exceptions import BadRequest, NotFound, InternalServerError
+
 
 app = FastAPI()
 storage = AnimalRepository("data/animals.json")
@@ -25,17 +28,28 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-@app.exception_handler(IOError)
-async def io_error_handler(request: Request, exc: IOError):
-    return JSONResponse(status_code=500, content={"detail": str(exc)})
+def format_error_response(exc):
+    return {
+        "error": exc.key,
+        "details": exc.details
+    }
 
-@app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError):
-    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-@app.exception_handler(AnimalNotFoundError)
-async def not_found_error_handler(request: Request, exc: AnimalNotFoundError):
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
+@app.exception_handler(InternalServerError)
+async def io_error_handler(request: Request, exc: InternalServerError):
+    return JSONResponse(status_code=500, content=format_error_response(exc))
+
+@app.exception_handler(BadRequest)
+async def value_error_handler(request: Request, exc: BadRequest):
+    return JSONResponse(status_code=400, content=format_error_response(exc))
+
+@app.exception_handler(NotFound)
+async def not_found_error_handler(request: Request, exc: NotFound):
+    return JSONResponse(status_code=404, content=format_error_response(exc))
+
+@app.exception_handler(SaveError)
+async def save_error_handler(request, exc):
+    return JSONResponse(status_code=500, content=format_error_response(InternalServerError(exc.key, **exc.kwargs)))
 
 @app.post(
     "/animals",
@@ -44,11 +58,15 @@ async def not_found_error_handler(request: Request, exc: AnimalNotFoundError):
     summary="動物の追加",
     description="種類と名前を入力して動物を追加します")
 def add_animal(req: schemas.Animal):
-    new_animal = manager.add_animal(animal_type=req.type, name=req.name)
+    try:
+        new_animal = manager.add_animal(animal_type=req.animal_type, name=req.name)
+    except ValidationError as e:
+        raise BadRequest(e.key, **e.kwargs)
     manager.save_to_file()
 
     return schemas.AnimalResult(
         id=new_animal.id,
+        animal_type=new_animal.animal_type,
         name=new_animal.name
     )
 
@@ -59,12 +77,16 @@ def add_animal(req: schemas.Animal):
     summary="動物をランダムに追加",
     description="指定した回数ランダムに動物を追加します")
 def add_random_animal(count: int):
-    added_animals = manager.add_random_animal(count)
+    try:
+        added_animals = manager.add_random_animal(count)
+    except ValidationError as e:
+        raise BadRequest(e.key, **e.kwargs)
     manager.save_to_file()
 
     return [
         schemas.AnimalResult(
             id=animal.id,
+            animal_type=animal.animal_type,
             name=animal.name
         ) for animal in added_animals
     ]
@@ -76,11 +98,17 @@ def add_random_animal(count: int):
     summary="動物の削除",
     description="動物を削除します")
 def remove_animal(id: int):
-    removed_animal = manager.remove_animal(id)
+    try:
+        removed_animal = manager.remove_animal(id)
+    except AnimalNotFoundError as e:
+        raise NotFound(e.key, **e.kwargs)
+    except ValidationError as e:
+        raise BadRequest(e.key, **e.kwargs)
     manager.save_to_file()
 
     return schemas.AnimalResult(
         id=removed_animal.id,
+        animal_type=removed_animal.animal_type,
         name=removed_animal.name
     )
 
@@ -93,15 +121,19 @@ def remove_animal(id: int):
 def edit_animal(id: int, req: schemas.AnimalEdit):
     update_data = req.model_dump(exclude_unset=True)
     
-    target_animal = manager.get_animal(id)
-    for attr, value in update_data.items():
-        target_animal = manager.edit_animal(id, attr, value)
+    try:
+        target_animal = manager.get_animal(id)
+        for attr, value in update_data.items():
+            target_animal = manager.edit_animal(id, attr, value)
+    except AnimalNotFoundError as e:
+        raise NotFound(e.key, **e.kwargs)
+    except ValidationError as e:
+        raise BadRequest(e.key, **e.kwargs)
 
     manager.save_to_file()
     return schemas.AnimalDetail(
         id=target_animal.id,
-        type_en=target_animal.type_en,
-        type_jp=target_animal.type_jp,
+        animal_type=target_animal.animal_type,
         name=target_animal.name,
         abilities=target_animal.get_all_ability()
     )
@@ -129,11 +161,14 @@ def get_abilities():
     description="指定したIDの動物の詳細情報を取得します"
 )
 def get_animal(id: int):
-    animal = manager.get_animal(id)
+    try:
+        animal = manager.get_animal(id)
+    except AnimalNotFoundError as e:
+        raise NotFound(e.key, **e.kwargs)
+
     return schemas.AnimalDetail(
         id=animal.id,
-        type_en=animal.type_en,
-        type_jp=animal.type_jp,
+        animal_type=animal.animal_type,
         name=animal.name,
         abilities=animal.get_all_ability()
     )
@@ -150,17 +185,19 @@ def search_animal(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyw
     "すべて","ID", "種類", "名前", "特技" が指定可能
     keyword (Query Parameter): 検索したいキーワード (任意)
     """
-    animals = manager.get_all_animals()
-    if keyword:
-        animals = manager.search_animal(search_attr.value, keyword)
-    if sort_by:
-        animals = manager.sort_list(animals, sort_by.name)
+    try:
+        animals = manager.get_all_animals()
+        if keyword:
+            animals = manager.search_animal(search_attr.value, keyword)
+        if sort_by:
+            animals = manager.sort_list(animals, sort_by.name)
+    except ValidationError as e:
+        raise BadRequest(e.key, **e.kwargs)
 
     return [
         schemas.AnimalDetail(
             id=animal.id,
-            type_en=animal.type_en,
-            type_jp=animal.type_jp,
+            animal_type=animal.animal_type,
             name=animal.name,
             abilities=animal.get_all_ability()
         ) for animal in animals
@@ -168,12 +205,22 @@ def search_animal(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyw
 
 @app.get(
     "/animals/act/{ability}",
-    response_model=list[str],
+    response_model=list[schemas.ActionResult],
     summary="動物の特技実行",
     description="list内の動物に、指定した特技を実行させます"
 )
-def act_animal(ability: schemas.AbilityType):  #現状searchと大差ないため後ほど回収予定
-    return manager.act_animal(ability.value)
+def act_animal(ability: schemas.AbilityType):  #現状searchと大差ないため後ほど改修予定
+    try:
+        result = manager.act_animal(ability.value)
+    except ValidationError as e:
+        raise BadRequest(e.key, **e.kwargs)
+    return [
+        schemas.ActionResult(
+            name=item['animal'].name,
+            animal_type=item['animal'].animal_type,
+            action_key=item['action_key']
+        ) for item in result
+    ]
 
 @app.post(
     "/system/clear",

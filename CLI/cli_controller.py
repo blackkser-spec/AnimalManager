@@ -168,7 +168,7 @@ class CliController:
                 return FlowResult.TO_BACK
 
             removed_animal = self.manager.remove_animal(animal_id)
-            self.menu_printer.print_success("animal_removed", name=removed_animal.name)
+            self.menu_printer.print_success("animal_removed", animal_id=animal_id, name=removed_animal.name)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)

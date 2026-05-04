@@ -1,18 +1,18 @@
 {
-    "id_counter": 8,
+    "id_counter": 6,
     "naming_count": {
-        "bird": 2,
-        "cat": 0,
-        "dog": 4,
+        "bird": 0,
+        "cat": 1,
+        "dog": 2,
         "duck": 1,
-        "fish": 1,
-        "penguin": 0
+        "fish": 0,
+        "penguin": 1
     },
     "animals": [
         {
             "id": 1,
-            "name": "dog1",
-            "animal_type": "dog",
+            "name": "gui_dog",
+            "animal_type": "duck",
             "ex_ability": []
         },
         {
@@ -23,37 +23,25 @@
         },
         {
             "id": 3,
-            "name": "dog3",
-            "animal_type": "dog",
+            "name": "penguin1",
+            "animal_type": "penguin",
             "ex_ability": []
         },
         {
             "id": 4,
-            "name": "dog4",
-            "animal_type": "dog",
+            "name": "cat1",
+            "animal_type": "cat",
             "ex_ability": []
         },
         {
             "id": 5,
-            "name": "fish1",
-            "animal_type": "fish",
-            "ex_ability": []
-        },
-        {
-            "id": 6,
             "name": "duck1",
             "animal_type": "duck",
             "ex_ability": []
         },
         {
-            "id": 7,
-            "name": "bird1",
-            "animal_type": "bird",
-            "ex_ability": []
-        },
-        {
-            "id": 8,
-            "name": "bird2",
+            "id": 6,
+            "name": " a",
             "animal_type": "bird",
             "ex_ability": []
         }

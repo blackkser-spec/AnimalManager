@@ -2,11 +2,13 @@ import tkinter   as tk
 from tkinter import ttk
 from controller.controller import Controller
 from core.manager import AnimalManager
-from text.loader import get_text
+from text.loader import get_text, set_language
 
 class Layout:
-    def __init__(self, root, use_mode=None):
+    def __init__(self, root, use_mode=None, use_lang="jp"):
         self.use_mode = use_mode
+        self.use_lang = use_lang
+        set_language(self.use_lang)
         self.text = get_text()
         if not self.use_mode:
             root.destroy()
@@ -87,6 +89,7 @@ class Layout:
             state="readonly"
         )
         self.search_attr.pack(side=tk.LEFT, padx=2)
+        self.search_attr.bind("<<ComboboxSelected>>", lambda e: e.widget.selection_clear())
         self.search_attr.current(0)
         # 検索入力欄
         self.search_entry = tk.Entry(search_frame, width=20)
@@ -163,6 +166,7 @@ class Layout:
         animal_types = self.manager.get_available_animal_types()
         self.add_type_combo = ttk.Combobox(self.add_window, values=animal_types, state="readonly")
         self.add_type_combo.pack(pady=5)
+        self.add_type_combo.bind("<<ComboboxSelected>>", lambda e: e.widget.selection_clear())
         if animal_types:
             self.add_type_combo.current(0)
         #名前Entry
@@ -247,6 +251,8 @@ class Layout:
 
     def change_editor(self, event):
         # すべての編集用ウィジェットを一旦非表示にする
+        event.widget.selection_clear()
+
         for widgets in self.edit_widgets.values():
             for widget in widgets:
                 widget.pack_forget()
@@ -266,6 +272,7 @@ class Layout:
             state="readonly"
         )
         self.act_target.pack(pady=5)
+        self.act_target.bind("<<ComboboxSelected>>", lambda e: e.widget.selection_clear())
         self.create_ok_cancel_btn(self.act_window, lambda: self.ctrl.execute_act(self.act_target.get()))
     
     def create_dialog(self, title, width=240, height=160):

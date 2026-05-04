@@ -10,39 +10,43 @@ class AnimalTypes(str, Enum):
     penguin = "penguin"
 
 class Animal(BaseModel):
-    type: str
+    animal_type: str
     name: str
 
 class AnimalResult(BaseModel):
     id  : int
+    animal_type: AnimalTypes | None = None
     name: str
 
 class AnimalDetail(BaseModel):
     id       : int
-    type_en  : str
-    type_jp  : str
+    animal_type  : str
     name     : str
-    abilities: dict = {}
+    abilities: list = []
 
 class AnimalEdit(BaseModel):
-    type: AnimalTypes | None = None
+    animal_type: AnimalTypes | None = None
     name: str | None = None
     ability: str | None = None
 
 class SearchAttr(str, Enum):
-    all = "すべて"
-    id = "ID"
-    type = "種類"
-    name = "名前"
-    ability = "特技"
+    all = "all"
+    id = "id"
+    animal_type = "animal_type"
+    name = "name"
+    ability = "ability"
 
 class SortAttr(str, Enum):
-    id      = "ID"
-    type_en = "種類:英語"
-    type_jp = "種類:日本語"
-    name    = "名前"
+    id      = "id"
+    animal_type = "animal_type"
+    name    = "name"
 
 class AbilityType(str, Enum):
-    voice = "voice"
+    sound = "sound"
     fly   = "fly"
     swim  = "swim"
+
+class ActionResult(BaseModel):
+    name: str
+    animal_type: str
+    action_key: str

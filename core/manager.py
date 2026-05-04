@@ -58,7 +58,7 @@ class AnimalManager:
 
     def add_animal(self, animal_type: str, name: str) -> animal.Animal:
         target = animal.AVAILABLE_ANIMAL_TYPES.get(animal_type)
-        if target is None: raise ValidationError("invalid_animal_type")
+        if target is None: raise ValidationError("invalid_animal_type", animal_type=animal_type)
         
         self._validate_name(name)
         self.id_counter += 1

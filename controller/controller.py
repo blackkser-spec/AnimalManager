@@ -1,4 +1,5 @@
 from tkinter import messagebox
+from text.loader import set_language, get_text
 
 class Controller:
     def __init__(self, layout, manager):
@@ -6,6 +7,9 @@ class Controller:
         self.manager = manager
         self.sort_desc = False
         self.last_sort_col = "id"
+        set_language(layout.use_lang)
+        self.text = get_text()
+
 
         if layout.use_mode == "remote":
             from controller.remote_backend import RemoteBackend
@@ -30,7 +34,12 @@ class Controller:
             self._post_action(window, msg)
             return result
         except Exception as e:
-            self.layout.log(f"エラー発生: {type(e).__name__}: {str(e)}")
+            error_msg = self.text["error"]["error_occurred"].format(
+                type=type(e).__name__,
+                msg=str(e)
+            )
+            self.layout.log(error_msg)
+            return None
 
 
     def add(self):
@@ -40,7 +49,7 @@ class Controller:
         self._handle_action(
             self.backend.execute_add, animal_type, name,
             window=self.layout.add_window,
-            msg=f"{animal_type} {name} を追加しました")
+            msg=self.text["success"]["animal_added"].format(animal_type=animal_type, name=name))
 
     def add_random(self):
         self.layout.open_random_dialog()
@@ -49,12 +58,12 @@ class Controller:
         return self._handle_action(
             self.backend.execute_add_random, count,
             window=self.layout.random_window,
-            msg=f"{count} 回のランダム追加に成功しました")
+            msg=self.text["success"]["random_animals_added"].format(count=count))
 
     def remove(self):
         selected = self.layout.tree_animals.selection()
         if not selected:
-            self.layout.log("対象を選択してください")
+            self.layout.log(self.text["error"]["no_selection"])
             return
 
         def remove_loop():
@@ -63,14 +72,15 @@ class Controller:
                 animal_id = int(item["values"][0])
                 removed = self.backend.execute_remove(animal_id)
                 if removed:
-                    self.layout.log(f"削除完了: ID:{removed['id']} {removed['name']}")
+                    msg = self.text["success"]["animal_removed"].format(animal_id=animal_id, name=removed['name'])
+                    self.layout.log(msg)
 
         self._handle_action(remove_loop, window=None, msg=None)
 
     def edit(self):
         selected = self.layout.tree_animals.selection()
         if not selected:
-            self.layout.log("対象を選択してください")
+            self.layout.log(self.text["error"]["no_selection"])
             return
         item = self.layout.tree_animals.item(selected[0])
         animal_id = int(item["values"][0])
@@ -79,20 +89,21 @@ class Controller:
     def execute_edit(self):
         animal_id = self.layout.edit_target_id
         edit_mode = self.layout.edit_target.get()
+        modes = self.text["label"]["edit_modes"]
         edit_map = {
-            "種類の変更": ("type", self.layout.type_combo.get),
-            "名前の変更": ("name", self.layout.name_entry.get),
-            "特技の変更": ("ability", self.layout.ability_combo.get),
+            modes["type"]: ("type", self.layout.type_combo.get),
+            modes["name"]: ("name", self.layout.name_entry.get),
+            modes["ability"]: ("ability", self.layout.ability_combo.get),
         }
         if edit_mode not in edit_map:
-            self.layout.log("編集項目を選択してください")
+            self.layout.log(self.text["error"]["no_selection"])
             return
 
         attr, getter = edit_map[edit_mode]
         self._handle_action(
             self.backend.execute_edit, animal_id, attr, getter(),
             window=self.layout.edit_window,
-            msg=f"ID:{animal_id} の {edit_mode}が完了"
+            msg=self.text["success"]["animal_edit_completed"].format(animal_id=animal_id, edit_mode=edit_mode)
         )
 
     def act(self): 
@@ -100,7 +111,7 @@ class Controller:
 
     def execute_act(self, choice):
         if self.backend.is_valid_action(choice) is False:
-            self.layout.log("不正な行動です")
+            self.layout.log(self.text["error"]["invalid_action"])
             return
         results = self._handle_action(
             self.backend.execute_act, choice,
@@ -109,8 +120,8 @@ class Controller:
 
         if results:
             for r in results:
-                self.layout.log(r)
-    
+                self.layout.log(self.text["actions"][r["action_key"]][r["animal_type"]].format(name=r["name"]))
+
     def clear_search(self):
         self.layout.search_entry.delete(0, "end")
         self.layout.refresh_list()
@@ -118,11 +129,10 @@ class Controller:
     def search(self):
         attribute = self.layout.search_attr.get()
         keyword = self.layout.search_entry.get()
-        try:
-            results = self.backend.execute_search(attribute, keyword)
+        
+        results = self._handle_action(self.backend.execute_search, attribute, keyword)
+        if results is not None:
             self.layout.refresh_list(results)
-        except Exception as e:
-            self.layout.log(str(e))
 
     def sort_tree(self, category):
         if self.last_sort_col == category:
@@ -133,37 +143,43 @@ class Controller:
         
         attribute = self.layout.search_attr.get()
         keyword = self.layout.search_entry.get()
-        try:
-            animals = self.backend.execute_search(attribute, keyword)
-            # AnimalDTOはdataclassなのでgetattrで属性取得
-            animals.sort(key=lambda x: getattr(x, category), reverse=self.sort_desc)
-            self.layout.refresh_list(animals)
-        except Exception as e:
-            self.layout.log(str(e))
+
+        results = self._handle_action(self.backend.execute_search, attribute, keyword)
+        if results is not None:
+            results.sort(key=lambda x: getattr(x, category), reverse=self.sort_desc)
+            self.layout.refresh_list(results)
             
     def load(self):
         try:
             # backendからデータを取得してレイアウトに渡す
             results = self.backend.execute_load()
             self.layout.refresh_list(results)
-        except Exception as e:
-            self.layout.log(f"読み込み失敗: {e}")
+        except Exception:
+            self.layout.log(self.text["error"]["load_error"])
 
     def save(self):
         result = self._handle_action(self.backend.save)
-        if result:
-            self.layout.log(result)
+        if result is True:
+            self.layout.log(self.text["success"]["data_saved"])
+        elif result is False:
+            self.layout.log(self.text["error"]["api_save_restricted"])
 
     def clear_data(self):
-        confirm = messagebox.askyesno("確認","本当にマネージャーのデータを消去しますか？")
+        confirm = messagebox.askyesno(
+            self.text["confirm"]["decision"],
+            self.text["confirm"]["clear_data_gui"]
+        )
         if confirm:
-            self._handle_action(self.backend.clear_data, msg="データを消去しました")
+            self._handle_action(self.backend.clear_data, msg=self.text["success"]["all_data_cleared"])
         else:
-            self.layout.log("データ消去をキャンセルしました")
+            self.layout.log(self.text["cancel"]["clear_data_cancelled"])
     
     def on_close(self):
         if self.backend.has_unsaved_changes():
-            result = messagebox.askyesnocancel("確認", "変更内容を保存しますか？")
+            result = messagebox.askyesnocancel(
+                self.text["confirm"]["decision"],
+                self.text["confirm"]["save_on_close"]
+            )
             if result is True:
                 self.save()
                 self.layout.root.destroy()
