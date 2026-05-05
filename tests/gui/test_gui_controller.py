@@ -9,6 +9,7 @@ def mock_layout():
     layout.tree_animals = MagicMock()
     layout.search_attr = MagicMock()
     layout.search_entry = MagicMock()
+    layout.use_lang = "jp"
     return layout
 
 @pytest.fixture
@@ -33,10 +34,12 @@ class TestInitialization:
              patch('controller.remote_backend.RemoteBackend') as mock_remote:
             
             mock_layout.use_mode = "local"
+            mock_layout.use_lang = "jp"
             Controller(mock_layout, mock_manager)
             mock_local.assert_called_once()
             
             mock_layout.use_mode = "remote"
+            mock_layout.use_lang = "jp"
             Controller(mock_layout, mock_manager)
             mock_remote.assert_called_once()
 
@@ -64,16 +67,22 @@ class TestAdd:
         # UIの更新系メソッドが呼ばれているか
         mock_layout.refresh_list.assert_called_once()
         mock_layout.add_window.destroy.assert_called_once()
-        mock_layout.log.assert_called_with("cat Tama を追加しました")
+        
+        expected_msg = controller.text["success"]["animal_added"].format(animal_type="cat", animal_name="Tama")
+        mock_layout.log.assert_called_with(expected_msg)
 
     def test_execute_add_failure(self, controller, mock_layout):
         # Arrange
         mock_layout.add_window = MagicMock()
-        controller.backend.execute_add.side_effect = Exception("通信エラー発生")
+        error_text = "error_occurred"
+        controller.backend.execute_add.side_effect = Exception(error_text)
         # Act
         controller.execute_add("cat", "Tama")
         # Assert
-        mock_layout.log.assert_called_with("エラー発生: Exception: 通信エラー発生")
+        expected_msg = controller.text["error"]["error_occurred"].format(
+            error_type="Exception", error_msg=error_text
+        )
+        mock_layout.log.assert_called_with(expected_msg)
         mock_layout.refresh_list.assert_not_called()
         mock_layout.add_window.destroy.assert_not_called()
 
@@ -86,7 +95,8 @@ class TestAdd:
         # Assert
         controller.backend.execute_add_random.assert_called_once_with(3)
         mock_layout.refresh_list.assert_called_once()
-        mock_layout.log.assert_called_with("3 回のランダム追加に成功しました")
+        expected_msg = controller.text["success"]["random_animals_added"].format(count=3)
+        mock_layout.log.assert_called_with(expected_msg)
 
 
 class TestRemove:
@@ -97,7 +107,7 @@ class TestRemove:
         # Act
         controller.remove()
         # Assert
-        mock_layout.log.assert_called_once_with("対象を選択してください")
+        mock_layout.log.assert_called_once_with(controller.text["error"]["no_selection"])
         controller.backend.execute_remove.assert_not_called()
 
     def test_remove_selected_items(self, controller, mock_layout):
@@ -115,8 +125,10 @@ class TestRemove:
         controller.remove()
         # Assert Backendが2回呼ばれたか
         assert controller.backend.execute_remove.call_count == 2
-        mock_layout.log.assert_any_call("削除完了: ID:10 Pochi")
-        mock_layout.log.assert_any_call("削除完了: ID:20 Tama")
+        msg1 = controller.text["success"]["animal_removed"].format(animal_id=10, animal_name="Pochi")
+        msg2 = controller.text["success"]["animal_removed"].format(animal_id=20, animal_name="Tama")
+        mock_layout.log.assert_any_call(msg1)
+        mock_layout.log.assert_any_call(msg2)
 
 
 class TestEdit:
@@ -124,7 +136,7 @@ class TestEdit:
         """編集対象が選択されていない場合"""
         mock_layout.tree_animals.selection.return_value = []
         controller.edit()
-        mock_layout.log.assert_called_once_with("対象を選択してください")
+        mock_layout.log.assert_called_once_with(controller.text["error"]["no_selection"])
         mock_layout.open_edit_dialog.assert_not_called()
 
     def test_edit_dialog_open(self, controller, mock_layout):
@@ -141,13 +153,15 @@ class TestEdit:
         # Arrange
         mock_layout.edit_window = MagicMock()
         mock_layout.edit_target_id = 1
-        mock_layout.edit_target.get.return_value = "名前の変更"
+        edit_mode_label = controller.text["label"]["edit_modes"]["name"]
+        mock_layout.edit_target.get.return_value = edit_mode_label
         mock_layout.name_entry.get.return_value = "Tama"
         # Act
         controller.execute_edit()
         # Assert
         controller.backend.execute_edit.assert_called_once_with(1, "name", "Tama")
-        mock_layout.log.assert_called_once_with("ID:1 の 名前の変更が完了")
+        expected_msg = controller.text["success"]["animal_edit_completed"].format(animal_id=1, edit_mode=edit_mode_label)
+        mock_layout.log.assert_called_once_with(expected_msg)
         mock_layout.refresh_list.assert_called_once()
         mock_layout.edit_window.destroy.assert_called_once()
 
@@ -158,7 +172,7 @@ class TestEdit:
         # Act
         controller.execute_edit()
         # Assert
-        mock_layout.log.assert_called_once_with("編集項目を選択してください")
+        mock_layout.log.assert_called_once_with(controller.text["error"]["no_selection"])
         controller.backend.execute_edit.assert_not_called()
 
 
@@ -167,13 +181,16 @@ class TestAction:
         # Arrange
         mock_layout.act_window = MagicMock()
         controller.backend.is_valid_action.return_value = True
-        controller.backend.execute_act.return_value = ["わんわん", "走った"]
+        controller.backend.execute_act.return_value = [
+            {"action_key": "sound", "animal_type": "dog", "name": "Pochi"}
+        ]
         # Act
         controller.execute_act("voice")
         # Assert
         controller.backend.execute_act.assert_called_once_with("voice")
-        mock_layout.log.assert_any_call("わんわん")
-        mock_layout.log.assert_any_call("走った")
+        
+        expected_action_msg = controller.text["actions"]["sound"]["dog"].format(animal_name="Pochi")
+        mock_layout.log.assert_any_call(expected_action_msg)
         mock_layout.act_window.destroy.assert_called_once()
 
     def test_execute_act_invalid(self, controller, mock_layout):
@@ -183,7 +200,7 @@ class TestAction:
         # Act
         controller.execute_act("unknown_action")
         # Assert
-        mock_layout.log.assert_called_once_with("不正な行動です")
+        mock_layout.log.assert_called_once_with(controller.text["error"]["invalid_action"])
         controller.backend.execute_act.assert_not_called()
 
 
@@ -191,7 +208,7 @@ class TestSearchAndSort:
     def test_search_integration(self, controller, mock_layout):
         """検索UIの値を取得し、Backendの結果をリストに反映させるか"""
         # Arrange
-        mock_layout.search_attr.get.return_value = "名前"
+        mock_layout.search_attr.get.return_value = "name"
         mock_layout.search_entry.get.return_value = "Tama"
         mock_results = [
             AnimalDTO(id=1, name="Tama", animal_type="cat", abilities=[]),
@@ -201,7 +218,7 @@ class TestSearchAndSort:
         # Act
         controller.search()
         # Assert
-        controller.backend.execute_search.assert_called_once_with("名前", "Tama")
+        controller.backend.execute_search.assert_called_once_with("name", "Tama")
         mock_layout.refresh_list.assert_called_once_with(mock_results)
 
     def test_clear_search(self, controller, mock_layout):
@@ -274,12 +291,12 @@ class TestDataManagement:
     def test_save_success(self, controller, mock_layout):
         # Arrange
         mock_layout.log.return_value = None
-        controller.backend.save.return_value = "データを保存しました"
+        controller.backend.save.return_value = True
         # Act
         controller.save()
         # Assert
         controller.backend.save.assert_called_once()
-        mock_layout.log.assert_called_once_with("データを保存しました")
+        mock_layout.log.assert_called_once_with(controller.text["success"]["data_saved"])
         mock_layout.refresh_list.assert_called_once()
 
     def test_save_failure(self, controller, mock_layout):
@@ -290,7 +307,10 @@ class TestDataManagement:
         controller.save()
         # Assert
         controller.backend.save.assert_called_once()
-        mock_layout.log.assert_called_once_with("エラー発生: ValueError: 保存データの形式が正しくありません")
+        expected_msg = controller.text["error"]["error_occurred"].format(
+            error_type="ValueError", error_msg="保存データの形式が正しくありません"
+        )
+        mock_layout.log.assert_called_once_with(expected_msg)
         mock_layout.refresh_list.assert_not_called()
 
     def test_clear_data(self, controller, mock_layout):
@@ -301,7 +321,7 @@ class TestDataManagement:
             controller.clear_data()
         # Assert
         controller.backend.clear_data.assert_called_once()
-        mock_layout.log.assert_called_once_with("データを消去しました")
+        mock_layout.log.assert_called_once_with(controller.text["success"]["all_data_cleared"])
         mock_layout.refresh_list.assert_called_once()
     
     def test_clear_data_bort(self, controller, mock_layout):
@@ -312,7 +332,7 @@ class TestDataManagement:
             controller.clear_data()
         # Assert
         controller.backend.clear_data.assert_not_called()
-        mock_layout.log.assert_called_once_with("データ消去をキャンセルしました")
+        mock_layout.log.assert_called_once_with(controller.text["cancel"]["clear_data_cancelled"])
         mock_layout.refresh_list.assert_not_called()
 
     def test_on_close_with_save(self, controller, mock_layout):

@@ -11,7 +11,7 @@ class AnimalManager:
     }
     ALLOWED_SORT_KEYS: list[str] = ["id", "animal_type", "name"]
     ALLOWED_ACTIONS: list[str] = ["sound", "fly", "swim"]
-    EDITABLE_ATTRIBUTES: list[str] = ["type", "name", "ability"]
+    EDITABLE_ATTRIBUTES: list[str] = ["animal_type", "name", "ability"]
     
     def __init__(self, repository) -> None:
         self.repository = repository
@@ -89,7 +89,7 @@ class AnimalManager:
     
     def edit_animal(self, animal_id: int, attr: str, new_value: str) -> animal.Animal:
         edit_map = {
-            "type": self._edit_animal_type,
+            "animal_type": self._edit_animal_type,
             "name": self._edit_animal_name,
             "ability": self._edit_animal_ability,
         }

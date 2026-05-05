@@ -131,14 +131,14 @@ class CliController:
             self.menu_printer.print_cancel("add_cancelled")
             return FlowResult.TO_BACK
 
-        prompt = self.menu_printer.get_text("prompts", "name_for_type", type=animal_type)
-        name = self._prompt_for_input(prompt)
-        if not name:
+        prompt = self.menu_printer.get_text("prompts", "name_for_type", animal_type=animal_type)
+        animal_name = self._prompt_for_input(prompt)
+        if not animal_name:
             self.menu_printer.print_cancel("add_cancelled")
             return FlowResult.TO_BACK
         try:
-            self.manager.add_animal(animal_type, name)
-            self.menu_printer.print_success("animal_added", animal_type=animal_type, name=name)
+            self.manager.add_animal(animal_type, animal_name)
+            self.menu_printer.print_success("animal_added", animal_type=animal_type, animal_name=animal_name)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -154,7 +154,7 @@ class CliController:
         try:
             added_animals = self.manager.add_random_animal(count)
             for animal in added_animals:
-                self.menu_printer.print_success("animal_added", animal_type=animal.animal_type, name=animal.name)
+                self.menu_printer.print_success("animal_added", animal_type=animal.animal_type, animal_name=animal.name)
             self.menu_printer.print_success("random_animals_added", count=count)
             return FlowResult.TO_MAIN
         except ValidationError as e:
@@ -168,7 +168,7 @@ class CliController:
                 return FlowResult.TO_BACK
 
             removed_animal = self.manager.remove_animal(animal_id)
-            self.menu_printer.print_success("animal_removed", animal_id=animal_id, name=removed_animal.name)
+            self.menu_printer.print_success("animal_removed", animal_id=animal_id, animal_name=removed_animal.name)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -193,15 +193,15 @@ class CliController:
     def edit_type_flow(self, target_id):
         target_animal = self.manager.get_animal(target_id)
         # "ID:{target_id} {target_animal.name} の新しい種類を入力"
-        prompt = self.menu_printer.get_text("prompts", "new_type_formatted", id=target_id, name=target_animal.name)
+        prompt = self.menu_printer.get_text("prompts", "new_type_formatted", animal_id=target_id, animal_name=target_animal.name)
         new_type = self._select_animal_type_flow(prompt)
         if new_type is None:
             self.menu_printer.print_cancel("edit_cancelled")
             return FlowResult.TO_BACK
 
         try:
-            self.manager.edit_animal(target_id, "type", new_type)
-            self.menu_printer.print_success("animal_type_updated", name=target_animal.name, type=new_type)
+            self.manager.edit_animal(target_id, "animal_type", new_type)
+            self.menu_printer.print_success("animal_type_updated", animal_name=target_animal.name, animal_type=new_type)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -209,7 +209,7 @@ class CliController:
     def edit_name_flow(self, target_id):
         target_animal = self.manager.get_animal(target_id)
         # "ID:{target_id} {target_animal.name} の新しい名前を入力"
-        prompt = self.menu_printer.get_text("prompts", "new_name_formatted", id=target_id, name=target_animal.name)
+        prompt = self.menu_printer.get_text("prompts", "new_name_formatted", animal_id=target_id, animal_name=target_animal.name)
         new_name = self._prompt_for_input(prompt)
         if not new_name:
             self.menu_printer.print_cancel("edit_cancelled")
@@ -228,7 +228,7 @@ class CliController:
         abilities = self.manager.get_available_abilities()
         self.menu_printer.print_ability_choice(abilities)
         # "ID:{target_id} {target_animal.name} の新しい特技を入力"
-        prompt = self.menu_printer.get_text("prompts", "new_ability_formatted", id=target_id, name=target_animal.name)
+        prompt = self.menu_printer.get_text("prompts", "new_ability_formatted", animal_id=target_id, animal_name=target_animal.name)
         new_ability = self._prompt_for_input(prompt, 
                                              validator=self._validate_ability)
         if new_ability is None:
@@ -237,7 +237,7 @@ class CliController:
         try:
             self.manager.edit_animal(target_id, "ability", new_ability)
             # {target_animal.name} の特技を {new_ability} に更新しました
-            self.menu_printer.print_success("animal_ability_updated", name=target_animal.name, ability=new_ability)
+            self.menu_printer.print_success("animal_ability_updated", animal_name=target_animal.name, ability=new_ability)
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
@@ -257,7 +257,7 @@ class CliController:
                 self.menu_printer.print_action_result(
                     action_key=res["action_key"],
                     animal_type=res["animal"].animal_type,
-                    name=res["animal"].name
+                    animal_name=res["animal"].name
                 )
             # {len(results)} 件の行動を実行しました
             self.menu_printer.print_success("actions_performed", count=len(results))

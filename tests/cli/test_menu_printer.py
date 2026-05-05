@@ -79,7 +79,7 @@ class TestPrintMenu:
         test_ma = {"opt1": "Action 1", "opt2": "Action 2"}
 
         with patch("cli.menu_printer.Ma", test_ma), \
-             patch("cli.menu_printer.T", {"title": "START", "title_end": "END"}):   
+             patch("cli.menu_printer.T", {"title_start": "START", "title_end": "END"}):   
             # Act
             menu_printer.print_menu()
             output = capsys.readouterr().out
@@ -126,10 +126,10 @@ class TestGetText:
     def test_success(self):
         """指定したセクションとキーから、フォーマット済みのテキストが取得できるか"""
         # Arrange: 辞書全体をモックデータに置き換える準備
-        test_texts = {
+        test_text = {
             "test_section": {"test_key": "Hello, {name}!"}
         }
-        with patch("cli.menu_printer.TEXTS", test_texts):
+        with patch("cli.menu_printer.TEXT", test_text):
             # Act
             result = menu_printer.get_text("test_section", "test_key", name="World")
             # Assert
@@ -141,8 +141,8 @@ class TestGetText:
 
     def test_format_missing_arg(self):
         # Arrange
-        TEXTS = {"main": {"greet": "Hello {name}"}}
-        with patch("cli.menu_printer.TEXTS", TEXTS):
+        TEXT = {"main": {"greet": "Hello {name}"}}
+        with patch("cli.menu_printer.TEXT", TEXT):
             # Act
             result = menu_printer.get_text("main", "greet")
         # Assert
@@ -151,10 +151,10 @@ class TestGetText:
 class TestActionResult:
     def test_success(self, capsys):
         # Arrange
-        test_Ac = {"test_fly": {"bird": "{name} is flying!"}}
+        test_Ac = {"test_fly": {"bird": "{animal_name} is flying!"}}
         with patch("cli.menu_printer.Ac", test_Ac):
             # Act
-            menu_printer.print_action_result("test_fly", "bird", name="test_bird")
+            menu_printer.print_action_result("test_fly", "bird", animal_name="test_bird")
             output = capsys.readouterr().out
             # Assert
             assert output.strip() == "test_bird is flying!"
@@ -164,7 +164,7 @@ class TestActionResult:
         test_Ac = {}
         with patch("cli.menu_printer.Ac", test_Ac):
             # Act
-            menu_printer.print_action_result("unknown_action", "unknown_type", name="test_bird")
+            menu_printer.print_action_result("unknown_action", "unknown_type", animal_name="test_bird")
             output = capsys.readouterr().out
             # Assert
             assert output.strip() == "test_bird (unknown_type): unknown_action"

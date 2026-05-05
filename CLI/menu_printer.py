@@ -75,12 +75,12 @@ def get_text(section, key, /, **kwargs):
     except KeyError:
         return template
     
-def print_action_result(action_key, animal_type, name):
+def print_action_result(action_key, animal_type, animal_name):
     try:
         template = Ac[action_key][animal_type]
-        print(template.format(name=name))
+        print(template.format(animal_name=animal_name))
     except (KeyError, AttributeError):
-        print(f"{name} ({animal_type}): {action_key}")
+        print(f"{animal_name} ({animal_type}): {action_key}")
 
 def print_confirm(key, /, **kwargs):
     msg = get_text("confirm", key, **kwargs)

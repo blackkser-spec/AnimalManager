@@ -114,7 +114,7 @@ class TestRemoveAnimal:
 
 class TestEditAnimal:
     @pytest.mark.parametrize("attr, target_method", [
-        ("type", "_edit_animal_type"),
+        ("animal_type", "_edit_animal_type"),
         ("name", "_edit_animal_name"),
         ("ability", "_edit_animal_ability"),
     ])
@@ -140,7 +140,7 @@ class TestEditAnimal:
         # Arrange
         original = manager.add_animal("bird","edit_Bird")
         # Act
-        edited = manager.edit_animal(original.id, "type", "cat")
+        edited = manager.edit_animal(original.id, "animal_type", "cat")
         # Assert
         assert edited is not original
         assert edited.id == original.id
@@ -152,7 +152,7 @@ class TestEditAnimal:
         original = manager.add_animal("bird","edit_Bird")
         # Act & Assert
         with pytest.raises(ValidationError) as e:
-            manager.edit_animal(original.id, "type", "unknown")
+            manager.edit_animal(original.id, "animal_type", "unknown")
         assert e.value.key == "invalid_animal_type"
 
     def test_edit_type_preserves_ex_ability(self, manager):
@@ -161,7 +161,7 @@ class TestEditAnimal:
         original = manager.add_animal("dog", "skill_dog")
         manager.edit_animal(original.id, "ability","fly")
         # Act
-        edited = manager.edit_animal(original.id,"type", "cat")
+        edited = manager.edit_animal(original.id,"animal_type", "cat")
         # Assert
         assert "fly" in edited.get_all_ability()
 
@@ -241,7 +241,7 @@ class TestSearchAnimal:
         manager.add_animal("cat", "search_cat")
         # Act & Assert
         assert len(manager.search_animal("name", "search")) == 1
-        assert len(manager.search_animal("type", "cat")) == 1
+        assert len(manager.search_animal("animal_type", "cat")) == 1
         assert len(manager.search_animal("ability", "fly")) == 0
         assert len(manager.search_animal("all", "search")) == 1
 
@@ -329,11 +329,11 @@ class TestDataPersistence:
         manager.save_to_file() 
         #Act
         manager.edit_animal(animal.id, "name", "new_name")
-        manager.edit_animal(animal.id, "type", "cat")
+        manager.edit_animal(animal.id, "animal_type", "cat")
         assert manager.is_changed()
         #revert
         manager.edit_animal(animal.id, "name", "original_name")
-        manager.edit_animal(animal.id, "type", "dog")
+        manager.edit_animal(animal.id, "animal_type", "dog")
         #Assert
         assert not manager.is_changed()
 

@@ -30,7 +30,7 @@ app.openapi = custom_openapi
 
 def format_error_response(exc):
     return {
-        "error": exc.key,
+        "key": exc.key,
         "details": exc.details
     }
 

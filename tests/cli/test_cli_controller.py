@@ -255,7 +255,7 @@ class TestSearchAnimalFlows:
         assert result == FlowResult.TO_MAIN
         mock_manager.search_animal.assert_called_once_with(attr, "keyword")
         cli_controller.menu_printer.print_animal_list.assert_called_with(mock_results)
-        cli_controller.menu_printer.print_success.assert_called_with("search", count=len(mock_results))
+        cli_controller.menu_printer.print_success.assert_called_with("search_completed", count=len(mock_results))
 
     def test_no_results(self, cli_controller, mock_manager):
         # Arrange
@@ -308,7 +308,7 @@ class TestAddAnimalFlow:
         # Assert
         assert result == FlowResult.TO_MAIN
         mock_manager.add_animal.assert_called_once_with("cat", "Tama")
-        cli_controller.menu_printer.print_success.assert_called_with("animal_added", animal_type="cat", name="Tama")
+        cli_controller.menu_printer.print_success.assert_called_with("animal_added", animal_type="cat", animal_name="Tama")
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
@@ -355,7 +355,7 @@ class TestRemoveAnimalFlow:
         cli_controller.remove_animal_flow()
         # Assert
         mock_manager.remove_animal.assert_called_once_with(1)
-        cli_controller.menu_printer.print_success.assert_called_with("animal_removed", name="Tama")
+        cli_controller.menu_printer.print_success.assert_called_with("animal_removed", animal_id=1, animal_name="Tama")
 
     def test_failure(self, cli_controller, mock_manager):
         # Arrange
@@ -373,7 +373,7 @@ class TestRemoveAnimalFlow:
 
 class TestEditAnimalFlow:
     @pytest.mark.parametrize("menu_index, attr_key, new_value, expected_msg",[
-        ("1", "type", "cat", "animal_type_updated"),
+        ("1", "animal_type", "cat", "animal_type_updated"),
         ("2", "name", "NewName", "animal_name_updated"),
         ("3", "ability", "fly", "animal_ability_updated")
     ])

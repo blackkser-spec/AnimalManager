@@ -30,31 +30,34 @@ class TestInitialization:
         app.ctrl.load.assert_called_once()
 
     def test_initial_ui_state(self, app):
-        assert app.root.title() == "Tkinter Test"
+        assert app.root.title() == app.text["title"]["title"]
         assert isinstance(app.tree_animals, tk.ttk.Treeview)
         assert isinstance(app.log_text, tk.Text)
         assert isinstance(app.search_entry, tk.Entry)
 
 
 class TestLeftPanel:
-    @pytest.mark.parametrize("button_text, method_name", [
-        ("動物追加", "add"),
-        ("ランダム追加", "add_random"),
-        ("動物削除", "remove"),
-        ("動物編集", "edit"),
-        ("動物行動", "act"),
-        ("データ保存", "save"),
-        ("データ消去", "clear_data"),
+    @pytest.mark.parametrize("button_text_key, method_name", [
+        ("add", "add"),
+        ("add_random", "add_random"),
+        ("remove", "remove"),
+        ("edit", "edit"),
+        ("act", "act"),
+        ("save", "save"),
+        ("clear", "clear_data"),
     ])
-    def test_tl_buttons_connection(self, app, button_text, method_name):
+    def test_tl_buttons_connection(self, app, button_text_key, method_name):
         """左パネルの各ボタンがControllerの対応するメソッドを正しく呼び出すか検証"""
+        # 翻訳辞書から期待されるテキストを取得
+        expected_text = app.text["label"][button_text_key]
+        
         target_button = None
         for child in app.tl_frame.winfo_children():
-            if isinstance(child, tk.Button) and child.cget("text") == button_text:
+            if isinstance(child, tk.Button) and child.cget("text") == expected_text:
                 target_button = child
                 break
         
-        assert target_button is not None, f"Button with text '{button_text}' not found"
+        assert target_button is not None, f"Button with text '{button_text_key}' not found"
         target_button.invoke()
         getattr(app.ctrl, method_name).assert_called_once()
 
@@ -75,21 +78,21 @@ class TestSearchBar:
 
     def test_search_attr_options(self, app):
         """検索範囲の選択肢（Combobox）の内容と初期値を検証"""
-        expected = ["すべて", "ID", "種類", "名前", "特技"]
+        expected = ["all", "id", "animal_type", "name", "ability"]
         assert list(app.search_attr["values"]) == expected
-        assert app.search_attr.get() == "すべて"
+        assert app.search_attr.get() == "all"
         
-        app.search_attr.set("名前")
-        assert app.search_attr.get() == "名前"
+        app.search_attr.set("name")
+        assert app.search_attr.get() == "name"
 
 
 class TestTreeView:
     def test_columns_setup(self, app):
         expected_columns = ("id", "type", "name")
         assert app.tree_animals["columns"] == expected_columns
-        assert app.tree_animals.heading("id")["text"] == "ID"
-        assert app.tree_animals.heading("type")["text"] == "種類"
-        assert app.tree_animals.heading("name")["text"] == "名前"
+        assert app.tree_animals.heading("id")["text"] == app.text["headers"]["id"]
+        assert app.tree_animals.heading("type")["text"] == app.text["headers"]["type"]
+        assert app.tree_animals.heading("name")["text"] == app.text["headers"]["name"]
 
     @pytest.mark.parametrize("column_id, expected_sort_key", [
         ("id", "id"),

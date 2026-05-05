@@ -28,15 +28,19 @@ class Controller:
         if msg:
             self.layout.log(msg)
 
-    def _handle_action(self, func, *args, window=None, msg=None):
+    def _handle_action(self, func, *args, window=None, msg=None, reload=True):
         try:
             result = func(*args)
-            self._post_action(window, msg)
+            if reload:
+                self._post_action(window, msg)
+            else:
+                if window: window.destroy()
+                if msg: self.layout.log(msg)
             return result
         except Exception as e:
             error_msg = self.text["error"]["error_occurred"].format(
-                type=type(e).__name__,
-                msg=str(e)
+                error_type=type(e).__name__,
+                error_msg=str(e)
             )
             self.layout.log(error_msg)
             return None
@@ -45,11 +49,11 @@ class Controller:
     def add(self):
         self.layout.open_add_dialog()
 
-    def execute_add(self, animal_type, name):
+    def execute_add(self, animal_type, animal_name):
         self._handle_action(
-            self.backend.execute_add, animal_type, name,
+            self.backend.execute_add, animal_type, animal_name,
             window=self.layout.add_window,
-            msg=self.text["success"]["animal_added"].format(animal_type=animal_type, name=name))
+            msg=self.text["success"]["animal_added"].format(animal_type=animal_type, animal_name=animal_name))
 
     def add_random(self):
         self.layout.open_random_dialog()
@@ -72,7 +76,7 @@ class Controller:
                 animal_id = int(item["values"][0])
                 removed = self.backend.execute_remove(animal_id)
                 if removed:
-                    msg = self.text["success"]["animal_removed"].format(animal_id=animal_id, name=removed['name'])
+                    msg = self.text["success"]["animal_removed"].format(animal_id=animal_id, animal_name=removed['name'])
                     self.layout.log(msg)
 
         self._handle_action(remove_loop, window=None, msg=None)
@@ -91,7 +95,7 @@ class Controller:
         edit_mode = self.layout.edit_target.get()
         modes = self.text["label"]["edit_modes"]
         edit_map = {
-            modes["type"]: ("type", self.layout.type_combo.get),
+            modes["type"]: ("animal_type", self.layout.type_combo.get),
             modes["name"]: ("name", self.layout.name_entry.get),
             modes["ability"]: ("ability", self.layout.ability_combo.get),
         }
@@ -120,7 +124,7 @@ class Controller:
 
         if results:
             for r in results:
-                self.layout.log(self.text["actions"][r["action_key"]][r["animal_type"]].format(name=r["name"]))
+                self.layout.log(self.text["actions"][r["action_key"]][r["animal_type"]].format(animal_name=r["name"]))
 
     def clear_search(self):
         self.layout.search_entry.delete(0, "end")
@@ -130,7 +134,8 @@ class Controller:
         attribute = self.layout.search_attr.get()
         keyword = self.layout.search_entry.get()
         
-        results = self._handle_action(self.backend.execute_search, attribute, keyword)
+        # 検索時は全件ロードをスキップ
+        results = self._handle_action(self.backend.execute_search, attribute, keyword, reload=False)
         if results is not None:
             self.layout.refresh_list(results)
 
@@ -144,7 +149,8 @@ class Controller:
         attribute = self.layout.search_attr.get()
         keyword = self.layout.search_entry.get()
 
-        results = self._handle_action(self.backend.execute_search, attribute, keyword)
+        # ソート時も自前でrefresh_listを呼ぶため全件ロードはスキップ
+        results = self._handle_action(self.backend.execute_search, attribute, keyword, reload=False)
         if results is not None:
             results.sort(key=lambda x: getattr(x, category), reverse=self.sort_desc)
             self.layout.refresh_list(results)
