@@ -21,6 +21,7 @@ class CliController:
             self.manage_animal_flow,
             self.manage_list_flow,
             self.search_animal_flow,
+            self.change_language,
             self.exit_manager
         ]
         try:
@@ -101,6 +102,22 @@ class CliController:
             except ValidationError as e:
                 self.menu_printer.print_error(e.key, **e.kwargs)
                 continue
+
+    def change_language(self):
+        from text.loader import SUPPORTED_LANGUAGES
+        lang_keys = list(SUPPORTED_LANGUAGES.keys())
+        self.menu_printer.print_inline_options("language_choice_header", lang_keys)
+        chosen_lang = self._prompt_for_choice(lang_keys)
+
+        if chosen_lang is None:
+            self.menu_printer.print_cancel("change_language_cancelled")
+            return FlowResult.TO_MAIN
+        
+        from text.loader import set_language
+        set_language(chosen_lang)
+        self.menu_printer.print_success("language_changed", lang=chosen_lang)
+        return FlowResult.TO_MAIN
+
 
     def exit_manager(self):
         try:
