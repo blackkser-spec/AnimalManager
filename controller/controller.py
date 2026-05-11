@@ -64,16 +64,10 @@ class Controller:
             window=self.layout.random_window,
             msg=self.text["success"]["random_animals_added"].format(count=count))
 
-    def remove(self):
-        selected = self.layout.tree_animals.selection()
-        if not selected:
-            self.layout.log(self.text["error"]["no_selection"])
-            return
-
+    def remove(self, selected_animal_data: list[dict]):
         def remove_loop():
-            for item_id in selected:
-                item = self.layout.tree_animals.item(item_id)
-                animal_id = int(item["values"][0])
+            for data in selected_animal_data:
+                animal_id = data["id"]
                 removed = self.backend.execute_remove(animal_id)
                 if removed:
                     msg = self.text["success"]["animal_removed"].format(animal_id=animal_id, animal_name=removed['name'])
@@ -81,33 +75,17 @@ class Controller:
 
         self._handle_action(remove_loop, window=None, msg=None)
 
-    def edit(self):
-        selected = self.layout.tree_animals.selection()
-        if not selected:
-            self.layout.log(self.text["error"]["no_selection"])
-            return
-        item = self.layout.tree_animals.item(selected[0])
-        animal_id = int(item["values"][0])
+    def edit(self, animal_id: int):
         self.layout.open_edit_dialog(animal_id)
 
-    def execute_edit(self):
-        animal_id = self.layout.edit_target_id
-        edit_mode = self.layout.edit_target.get()
-        modes = self.text["label"]["edit_modes"]
-        edit_map = {
-            modes["type"]: ("animal_type", self.layout.type_combo.get),
-            modes["name"]: ("name", self.layout.name_entry.get),
-            modes["ability"]: ("ability", self.layout.ability_combo.get),
-        }
-        if edit_mode not in edit_map:
+    def execute_edit(self, animal_id: int, attr: str, new_value: str, display_label: str):
+        if not attr:
             self.layout.log(self.text["error"]["no_selection"])
             return
-
-        attr, getter = edit_map[edit_mode]
         self._handle_action(
-            self.backend.execute_edit, animal_id, attr, getter(),
+            self.backend.execute_edit, animal_id, attr, new_value,
             window=self.layout.edit_window,
-            msg=self.text["success"]["animal_edit_completed"].format(animal_id=animal_id, edit_mode=edit_mode)
+            msg=self.text["success"]["animal_edit_completed"].format(animal_id=animal_id, edit_mode=display_label or attr)
         )
 
     def act(self): 
@@ -124,31 +102,36 @@ class Controller:
 
         if results:
             for r in results:
-                self.layout.log(self.text["actions"][r["action_key"]][r["animal_type"]].format(animal_name=r["name"]))
+                try:
+                    msg = self.text["actions"][r["action_key"]][r["animal_type"]]
+                    self.layout.log(msg.format(animal_name=r["name"]))
+
+                except (KeyError, AttributeError):
+                    fallback = (
+                        f"{r['name']} "
+                        f"({r['animal_type']}): "
+                        f"{r['action_key']}"
+                    )
+
+                    self.layout.log(f"[Missing Text] {fallback}")
 
     def clear_search(self):
         self.layout.search_entry.delete(0, "end")
         self.layout.refresh_list()
 
-    def search(self):
-        attribute = self.layout.search_attr.get()
-        keyword = self.layout.search_entry.get()
-        
+    def search(self, attribute, keyword):
         # 検索時は全件ロードをスキップ
         results = self._handle_action(self.backend.execute_search, attribute, keyword, reload=False)
         if results is not None:
             self.layout.refresh_list(results)
 
-    def sort_tree(self, category):
+    def sort_tree(self, category, attribute, keyword):
         if self.last_sort_col == category:
             self.sort_desc = not self.sort_desc
         else:
             self.sort_desc = False
             self.last_sort_col = category
         
-        attribute = self.layout.search_attr.get()
-        keyword = self.layout.search_entry.get()
-
         # ソート時も自前でrefresh_listを呼ぶため全件ロードはスキップ
         results = self._handle_action(self.backend.execute_search, attribute, keyword, reload=False)
         if results is not None:

@@ -65,6 +65,7 @@ TEXT = {
             "dog": "{animal_name} はワンワンと吠えた",
             "duck": "{animal_name} はガアガアと鳴いた",
             "penguin": "{animal_name} はぷーぷーと鳴いた",
+            "sheep": "{animal_name} はメエと鳴いた"
         },
         "fly": {
             "bird": "{animal_name} は空高く飛んでいる",
@@ -81,7 +82,7 @@ TEXT = {
         "ability_list": "特技の一覧",
         "all": "すべて",
         "id": "ID",
-        "type": "種類",
+        "animal_type": "種類",
         "name": "名前",
         "ability": "特技",
         "edit_choice_header": "変更可能属性の一覧",

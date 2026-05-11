@@ -116,7 +116,8 @@ class TestActAnimal:
 
     def test_error_invalid_ability(self, client):
         response = client.get("/animals/act/invalid")
-        assert response.status_code == 422
+        assert response.status_code == 400
+        assert response.json()["key"] == "invalid_action"
 
 
 class TestGetAnimal:

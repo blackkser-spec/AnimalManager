@@ -30,7 +30,6 @@ class Layout:
         
         self.create_widgets()
         self.ctrl.load()
-        #self.refresh_list()
 
     def create_widgets(self):
         """UIウィジェットを生成し、配置する"""
@@ -63,16 +62,38 @@ class Layout:
     def _create_topleft_panel(self):
         """左パネルのボタン群を生成する"""
         buttons = [
-            (self.text["label"]["add"], self.ctrl.add),
+            (self.text["label"]["add"],        self.ctrl.add),
             (self.text["label"]["add_random"], self.ctrl.add_random),
-            (self.text["label"]["remove"], self.ctrl.remove),
-            (self.text["label"]["edit"], self.ctrl.edit),
-            (self.text["label"]["act"], self.ctrl.act),
-            (self.text["label"]["save"], self.ctrl.save), # 保存ボタン用
-            (self.text["label"]["clear"], self.ctrl.clear_data)
+            (self.text["label"]["remove"],     self._on_remove_clicked),
+            (self.text["label"]["edit"],       self._on_edit_clicked),
+            (self.text["label"]["act"],        self.ctrl.act),
+            (self.text["label"]["save"],       self.ctrl.save), 
+            (self.text["label"]["clear"],      self.ctrl.clear_data)
         ]
         for i, (text, method_name) in enumerate(buttons):
             tk.Button(self.tl_frame,text=text, command=method_name, width=10).pack(expand=True, fill="both")
+
+        # TreeView helper
+    def _get_selected_animals(self):
+        """現在選択されているアイテムの情報をリストで返す"""
+        selected = self.tree_animals.selection()
+        results = []
+        for item_id in selected:
+            item = self.tree_animals.item(item_id)
+            results.append({"id": int(item["values"][0]), "name": item["values"][2]})
+        return results
+
+    def _on_remove_clicked(self):
+        data = self._get_selected_animals()
+        if not data:
+            return self.log(self.text["error"]["no_selection"])
+        self.ctrl.remove(data)
+
+    def _on_edit_clicked(self):
+        data = self._get_selected_animals()
+        if not data:
+            return self.log(self.text["error"]["no_selection"])
+        self.ctrl.edit(data[0]["id"])
 
     def _create_topright_panel(self):
         """右パネルのTreeviewと関連ウィジェットを生成する"""
@@ -82,40 +103,45 @@ class Layout:
         # アイコンラベル
         tk.Label(search_frame, text="🔍", bg="#f0f0f0", fg="#555").pack(side=tk.LEFT, padx=(8, 2))
         # 検索ジャンル
+        self.search_keys = list(self.manager.SEARCH_MAP.keys())
+        search_labels = [self.text["headers"].get(k, k) for k in self.search_keys]
         self.search_attr = ttk.Combobox(
             search_frame,
-            values=["all","id", "animal_type", "name", "ability"],
+            values=search_labels,
             width=8,
             state="readonly"
         )
         self.search_attr.pack(side=tk.LEFT, padx=2)
         self.search_attr.bind("<<ComboboxSelected>>", lambda e: e.widget.selection_clear())
         self.search_attr.current(0)
+        # getをラップして翻訳ラベルではなく内部キー("all"等)を返すように拡張
+        self.search_attr.get = lambda: self.search_keys[self.search_attr.current()]
+
         # 検索入力欄
         self.search_entry = tk.Entry(search_frame, width=20)
         self.search_entry.pack(side=tk.LEFT, fill="x", expand=True, padx=2)
-        self.search_entry.bind("<Return>", lambda event: self.ctrl.search()) # Enterキーで実行
+        self.search_entry.bind("<Return>", lambda e: self.ctrl.search(self.search_attr.get(), self.search_entry.get())) # Enterキーで実行
 
         # 実行ボタン & クリアボタン
-        self.btn_search = tk.Button(search_frame, text=self.text["label"]["search"], command=self.ctrl.search, width=6, bg="#e1e1e1")
+        self.btn_search = tk.Button(search_frame, text=self.text["label"]["search"], command=lambda: self.ctrl.search(self.search_attr.get(), self.search_entry.get()), width=6, bg="#e1e1e1")
         self.btn_search.pack(side=tk.LEFT, padx=2)
         self.btn_clear = tk.Button(search_frame, text=self.text["icon"]["clear"], command=self.ctrl.clear_search, width=3, bg="#ffdddd")
         self.btn_clear.pack(side=tk.LEFT, padx=(2, 8))
 
         # --- Treeviewエリア ---
-        columns = ("id", "type", "name")
+        columns = tuple(self.manager.ALLOWED_SORT_KEYS)
         self.tree_animals = ttk.Treeview(self.tr_frame, columns=columns, show="headings")
-        self.tree_animals.heading("id",   text=self.text["headers"]["id"],   command=lambda: self.ctrl.sort_tree("id"))
-        self.tree_animals.heading("type", text=self.text["headers"]["type"], command=lambda: self.ctrl.sort_tree("animal_type"))
-        self.tree_animals.heading("name", text=self.text["headers"]["name"], command=lambda: self.ctrl.sort_tree("name"))
-        self.tree_animals.column ("id",   width=10,  anchor="w")
-        self.tree_animals.column ("type", width=50,  anchor="w")
-        self.tree_animals.column ("name", width=200, anchor="w")
+        self.tree_animals.heading("id",          text=self.text["headers"]["id"],          command=lambda: self.ctrl.sort_tree("id", self.search_attr.get(), self.search_entry.get()))
+        self.tree_animals.heading("animal_type", text=self.text["headers"]["animal_type"], command=lambda: self.ctrl.sort_tree("animal_type", self.search_attr.get(), self.search_entry.get()))
+        self.tree_animals.heading("name",        text=self.text["headers"]["name"],        command=lambda: self.ctrl.sort_tree("name", self.search_attr.get(), self.search_entry.get()))
+        self.tree_animals.column ("id",          width=10,  anchor="w")
+        self.tree_animals.column ("animal_type", width=50,  anchor="w")
+        self.tree_animals.column ("name",        width=200, anchor="w")
 
         self.scrollbar = tk.Scrollbar(self.tr_frame)
         self.tree_menu = tk.Menu(self.tree_animals, tearoff=0)
-        self.tree_menu.add_command(label=self.text["label"]["edit"], command=self.ctrl.edit)
-        self.tree_menu.add_command(label=self.text["label"]["remove"], command=self.ctrl.remove)
+        self.tree_menu.add_command(label=self.text["label"]["edit"], command=self._on_edit_clicked)
+        self.tree_menu.add_command(label=self.text["label"]["remove"], command=self._on_remove_clicked)
         self.tree_animals.bind("<Button-3>", self.show_tree_menu)
     
         self.tree_animals.config(yscrollcommand=self.scrollbar.set)
@@ -200,36 +226,41 @@ class Layout:
             width=8).pack(side=tk.BOTTOM, pady=10)
             
     def open_edit_dialog(self, animal_id):
+        """動物情報を編集するためのダイアログを表示し、入力ウィジェットを動的に切り替える"""
         self.edit_window = self.create_dialog(self.text["label"]["edit"], height=200)
-        self.edit_target_id = animal_id
-        # 編集項目combobox
+        # 1. 編集項目の選択エリア
         ttk.Label(self.edit_window, text=self.text["label"]["edit_item"]).pack(pady=1)
-        
-        edit_modes = list(self.text["label"]["edit_modes"].values())
-        self.edit_target = ttk.Combobox(
-            self.edit_window,
-            values=edit_modes,
-            state="readonly"
-        )
+        # プログラム内部用のキー名と、画面表示用のラベルをペアで管理
+        self.edit_options = [
+            ("animal_type", self.text["label"]["edit_modes"]["type"]),
+            ("name",        self.text["label"]["edit_modes"]["name"]),
+            ("ability",     self.text["label"]["edit_modes"]["ability"])
+        ]
+        self.edit_keys = [opt[0] for opt in self.edit_options]
+        edit_labels = [opt[1] for opt in self.edit_options]
+        # 編集項目選択Combobox
+        self.edit_target = ttk.Combobox(self.edit_window, values=edit_labels, state="readonly")
         self.edit_target.pack(pady=5)
-
+        if edit_labels:
+            self.edit_target.current(0)
         self.edit_target.bind("<<ComboboxSelected>>", self.change_editor)
 
-        # 編集用ウィジェットを配置する親フレーム
+        # 2. 入力ウィジェットの生成エリア
         editor_frame = tk.Frame(self.edit_window)
         editor_frame.pack(pady=5, fill="x", expand=True)
 
-        # type
+        # 種別 (Combobox)
         type_label = ttk.Label(editor_frame, text=self.text["label"]["new_type"])
         self.type_combo = ttk.Combobox(
             editor_frame,
             values=self.manager.get_available_animal_types(),
             state="readonly"
         )
-        # name
+        # 名前 (Entry)
         name_label = ttk.Label(editor_frame, text=self.text["label"]["new_name"])
         self.name_entry = tk.Entry(editor_frame)
-        # ability
+        
+        # 特技 (Combobox)
         ability_label = ttk.Label(editor_frame, text=self.text["label"]["new_ability"])
         self.ability_combo = ttk.Combobox(
             editor_frame,
@@ -237,31 +268,55 @@ class Layout:
             state="readonly"
         )
 
-        # ウィジェットを辞書で管理
-        modes = self.text["label"]["edit_modes"]
+        # change_editorが内部キーでウィジェットを特定できるようにマッピングを保持
         self.edit_widgets = {
-            modes["type"]: (type_label, self.type_combo),
-            modes["name"]: (name_label, self.name_entry),
-            modes["ability"]: (ability_label, self.ability_combo)
+            "animal_type": (type_label, self.type_combo),
+            "name":        (name_label, self.name_entry),
+            "ability":     (ability_label, self.ability_combo)
         }
 
-        # 決定・キャンセルボタン (下部に固定配置)
-        self.create_ok_cancel_btn(self.edit_window, lambda: self.ctrl.execute_edit())
+        def get_selected_attr():
+            idx = self.edit_target.current()
+            return self.edit_keys[idx] if idx >= 0 else None
+        
+        def get_display_label():
+            idx = self.edit_target.current()
+            return self.edit_options[idx][1] if idx >= 0 else ""
+        
+        def get_current_value():
+            """表示ウィジェットから入力内容を取得"""
+            attr = get_selected_attr()
+            if attr == "animal_type": return self.type_combo.get()
+            if attr == "name":        return self.name_entry.get()
+            if attr == "ability":     return self.ability_combo.get()
+            return ""
+        # 4. 下部ボタンの配置
+        self.create_ok_cancel_btn(
+            self.edit_window, 
+            lambda: self.ctrl.execute_edit(
+                animal_id, 
+                get_selected_attr(), 
+                get_current_value(), 
+                get_display_label()
+            )
+        )
+        self.update_editor_widgets()
 
+    def update_editor_widgets(self, event=None):
+        """選択された項目に応じて入力ウィジェットを切り替える。初期表示時はevent=Noneで呼ばれる"""
+        choice_idx = self.edit_target.current()
 
-    def change_editor(self, event):
-        # すべての編集用ウィジェットを一旦非表示にする
-        event.widget.selection_clear()
+        if choice_idx < 0: return
 
-        for widgets in self.edit_widgets.values():
-            for widget in widgets:
-                widget.pack_forget()
-        # choiceされた要素のウィジェットを表示する
-        choice = self.edit_target.get()
-        if choice in self.edit_widgets:
-            label, field = self.edit_widgets[choice]
-            label.pack(pady=1)
-            field.pack(pady=5)
+        choice_key = self.edit_options[choice_idx][0]
+
+        for label, field in self.edit_widgets.values():
+            label.pack_forget()
+            field.pack_forget()
+        
+        label, field = self.edit_widgets[choice_key]
+        label.pack(pady=1)
+        field.pack(pady=5)
 
     def open_act_dialog(self):
         self.act_window = self.create_dialog(self.text["label"]["act"])

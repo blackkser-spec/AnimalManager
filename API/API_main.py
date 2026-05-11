@@ -209,9 +209,9 @@ def search_animal(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyw
     summary="動物の特技実行",
     description="list内の動物に、指定した特技を実行させます"
 )
-def act_animal(ability: schemas.AbilityType):  #現状searchと大差ないため後ほど改修予定
+def act_animal(ability: str):  # schemas.AbilityType の警告を避けるため str に変更
     try:
-        result = manager.act_animal(ability.value)
+        result = manager.act_animal(ability)
     except ValidationError as e:
         raise BadRequest(e.key, **e.kwargs)
     return [

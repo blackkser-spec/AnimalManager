@@ -161,7 +161,7 @@ class TestMenuFlows:
         """main_menuの場合のみ終了処理が呼ばれるか"""
         # Arrange
         if flow_method == "main_menu":
-            cli_controller._get_raw_input.side_effect = ["", "4"]
+            cli_controller._get_raw_input.side_effect = ["", "5"]
             cli_controller.exit_manager = MagicMock(return_value=FlowResult.EXIT)
         else:
             cli_controller._get_raw_input.return_value = ""
@@ -207,7 +207,7 @@ class TestMenuFlows:
             ("manage_animal_flow", "3", "remove_animal_flow"),
             ("manage_list_flow", "1", "show_animal_list_flow"),
             ("manage_list_flow", "2", "sort_list_flow"),
-            ("main_menu", "4", "exit_manager"),
+            ("main_menu", "5", "exit_manager"),
         ])
     def test_dispatch(self, cli_controller, flow_method, choice, expected_sub_method):
         """各フローにおいて、正しい番号で正しいサブメソッドが呼ばれるか"""
@@ -219,8 +219,8 @@ class TestMenuFlows:
         setattr(cli_controller, expected_sub_method, mock_action)
 
         inputs = [choice]
-        if flow_method == "main_menu" and choice != "4":
-            inputs.append("4")
+        if flow_method == "main_menu" and choice != "5":
+            inputs.append("5")
 
         cli_controller._get_raw_input.side_effect = inputs
         # Act
@@ -240,6 +240,7 @@ class TestSearchAnimalFlows:
     def test_success(self, cli_controller, mock_manager, choice, attr):
         # Arrange
         mock_manager.SEARCH_MAP = {
+            "all": "すべて",
             "id": "ID",
             "type": "種族",
             "name": "名前",

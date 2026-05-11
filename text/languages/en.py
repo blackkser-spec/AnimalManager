@@ -65,6 +65,7 @@ TEXT = {
             "dog": "{animal_name} barked loudly",
             "duck": "{animal_name} went 'quack'",
             "penguin": "{animal_name} made a honking sound",
+            "sheep": "{animal_name} bleated"
         },
         "fly": {
             "bird": "{animal_name} is flying high in the sky",
@@ -81,7 +82,7 @@ TEXT = {
         "ability_list": "Abilities",
         "all": "ALL",
         "id": "ID",
-        "type": "Type",
+        "animal_type": "Type",
         "name": "Name",
         "ability": "Ability",
         "edit_choice_header": "Editable Attributes",

@@ -100,29 +100,16 @@ class TestAdd:
 
 
 class TestRemove:
-    def test_remove_no_selection(self, controller, mock_layout):
-        """何も選択されていない場合に警告ログが出るか"""
+    def test_success(self, controller, mock_layout):
         # Arrange
-        mock_layout.tree_animals.selection.return_value = []
-        # Act
-        controller.remove()
-        # Assert
-        mock_layout.log.assert_called_once_with(controller.text["error"]["no_selection"])
-        controller.backend.execute_remove.assert_not_called()
-
-    def test_remove_selected_items(self, controller, mock_layout):
-        # Arrange
-        tree_data = {
-            "item_key_1": {"values": [10, "猫", "Pochi"]},
-            "item_key_2": {"values": [20, "犬", "Tama"]}
-        }
-        mock_layout.tree_animals.selection.return_value = list(tree_data.keys())
-        mock_layout.tree_animals.item.side_effect = lambda item_id: tree_data[item_id]
-        # Act
+        selected_data = [{"id": 10, "name": "Pochi"},
+                        {"id": 20, "name": "Tama"}]
         controller.backend.execute_remove.side_effect = [
-            {"id": 10, "name": "Pochi"}, {"id": 20, "name": "Tama"}
+            {"id": 10, "name": "Pochi"},
+            {"id": 20, "name": "Tama"}
         ]
-        controller.remove()
+        # Act
+        controller.remove(selected_data)
         # Assert Backendが2回呼ばれたか
         assert controller.backend.execute_remove.call_count == 2
         msg1 = controller.text["success"]["animal_removed"].format(animal_id=10, animal_name="Pochi")
@@ -132,48 +119,46 @@ class TestRemove:
 
 
 class TestEdit:
-    def test_edit_no_selection(self, controller, mock_layout):
-        """編集対象が選択されていない場合"""
-        mock_layout.tree_animals.selection.return_value = []
-        controller.edit()
-        mock_layout.log.assert_called_once_with(controller.text["error"]["no_selection"])
-        mock_layout.open_edit_dialog.assert_not_called()
-
     def test_edit_dialog_open(self, controller, mock_layout):
         """選択されている場合に編集ダイアログが開くか"""
         # Arrange
-        mock_layout.tree_animals.selection.return_value = ["item1"]
-        mock_layout.tree_animals.item.return_value = {"values": [1]}
+        selected_data = [{"id": 10, "name": "Pochi"}]
         # Act
-        controller.edit()
+        controller.edit(selected_data[0]["id"])
         # Assert
-        mock_layout.open_edit_dialog.assert_called_once_with(1)
+        mock_layout.open_edit_dialog.assert_called_once_with(10)
 
     def test_execute_edit_success(self, controller, mock_layout):
         # Arrange
-        mock_layout.edit_window = MagicMock()
-        mock_layout.edit_target_id = 1
-        edit_mode_label = controller.text["label"]["edit_modes"]["name"]
-        mock_layout.edit_target.get.return_value = edit_mode_label
-        mock_layout.name_entry.get.return_value = "Tama"
+
         # Act
-        controller.execute_edit()
+        controller.execute_edit(1, "name", "Tama", "name")
         # Assert
         controller.backend.execute_edit.assert_called_once_with(1, "name", "Tama")
-        expected_msg = controller.text["success"]["animal_edit_completed"].format(animal_id=1, edit_mode=edit_mode_label)
+        expected_msg = controller.text["success"]["animal_edit_completed"].format(animal_id=1, edit_mode="name")
         mock_layout.log.assert_called_once_with(expected_msg)
         mock_layout.refresh_list.assert_called_once()
         mock_layout.edit_window.destroy.assert_called_once()
 
-    def test_execute_edit_invalid_choice(self, controller, mock_layout):
-        """無効な編集項目が選択された場合のバリデーション"""
-        # Arrange
-        mock_layout.edit_target.get.return_value = "無効な項目"
+    def test_execute_edit_no_attr(self, controller, mock_layout):
+        """attrが指定されない場合、ログを表示して処理を中断するか"""
         # Act
-        controller.execute_edit()
+        controller.execute_edit(1, "", "NewVal", "Label")
         # Assert
         mock_layout.log.assert_called_once_with(controller.text["error"]["no_selection"])
         controller.backend.execute_edit.assert_not_called()
+
+    def test_execute_edit_backend_error(self, controller, mock_layout):
+        """Backend側で例外が発生した際、ダイアログを閉じずにエラーログを表示するか"""
+        # Arrange
+        controller.backend.execute_edit.side_effect = Exception("Backend Error")
+        # Act
+        controller.execute_edit(1, "name", "Tama", "名前")
+        # Assert
+        # エラー発生時はメッセージが表示されるが、後続の処理(window.destroy)が呼ばれないことを確認
+        mock_layout.log.assert_called()
+        mock_layout.edit_window.destroy.assert_not_called()
+        mock_layout.refresh_list.assert_not_called()
 
 
 class TestAction:
@@ -216,7 +201,7 @@ class TestSearchAndSort:
         ]
         controller.backend.execute_search.return_value = mock_results
         # Act
-        controller.search()
+        controller.search("name", "Tama")
         # Assert
         controller.backend.execute_search.assert_called_once_with("name", "Tama")
         mock_layout.refresh_list.assert_called_once_with(mock_results)
@@ -252,7 +237,7 @@ class TestSearchAndSort:
         controller.last_sort_col = initial_last_sort_col
         controller.sort_desc = initial_sort_desc
         # Act
-        controller.sort_tree(sort_column)
+        controller.sort_tree(sort_column, "all", "")
         # Assert
         mock_layout.refresh_list.assert_called_once()
         sorted_animals = mock_layout.refresh_list.call_args.args[0]

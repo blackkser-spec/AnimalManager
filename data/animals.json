@@ -1,12 +1,38 @@
 {
-    "id_counter": 0,
+    "id_counter": 6,
     "naming_count": {
         "bird": 0,
-        "cat": 0,
+        "cat": 2,
         "dog": 0,
-        "duck": 0,
-        "fish": 0,
-        "penguin": 0
+        "duck": 2,
+        "fish": 1,
+        "penguin": 0,
+        "sheep": 0
     },
-    "animals": []
+    "animals": [
+        {
+            "id": 1,
+            "name": "duck1",
+            "animal_type": "duck",
+            "ex_ability": []
+        },
+        {
+            "id": 4,
+            "name": "duck2",
+            "animal_type": "duck",
+            "ex_ability": []
+        },
+        {
+            "id": 5,
+            "name": "fish1",
+            "animal_type": "fish",
+            "ex_ability": []
+        },
+        {
+            "id": 6,
+            "name": "めえ",
+            "animal_type": "sheep",
+            "ex_ability": []
+        }
+    ]
 }

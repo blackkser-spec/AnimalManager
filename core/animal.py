@@ -65,6 +65,11 @@ class Penguin(Animal):
         super().__init__(id, name, animal_type="penguin",
                          ability  ={"sound", "swim"})
 
+class Sheep(Animal):
+    def __init__(self, id, name):
+        super().__init__(id, name, animal_type="sheep",
+                         ability  ={"sound"})
+
 AVAILABLE_ANIMAL_TYPES = {
     "bird": Bird,
     "cat": Cat,
@@ -72,6 +77,7 @@ AVAILABLE_ANIMAL_TYPES = {
     "duck": Duck,
     "fish": Fish,
     "penguin": Penguin,
+    "sheep": Sheep,
 }
 
 # システムがサポートする特技の定義

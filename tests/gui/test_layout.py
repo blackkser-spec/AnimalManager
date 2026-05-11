@@ -23,7 +23,16 @@ def app(root, mock_manager):
 
 @pytest.fixture
 def mock_manager():
-    return MagicMock()
+    mgr = MagicMock()
+    mgr.SEARCH_MAP = {
+        "all": None,
+        "id": None,
+        "animal_type": None,
+        "name": None,
+        "ability": None
+    }
+    mgr.ALLOWED_SORT_KEYS = ["id", "animal_type", "name"]
+    return mgr
 
 class TestInitialization:
     def test_load_success(self, app):
@@ -40,14 +49,12 @@ class TestLeftPanel:
     @pytest.mark.parametrize("button_text_key, method_name", [
         ("add", "add"),
         ("add_random", "add_random"),
-        ("remove", "remove"),
-        ("edit", "edit"),
         ("act", "act"),
         ("save", "save"),
         ("clear", "clear_data"),
     ])
-    def test_tl_buttons_connection(self, app, button_text_key, method_name):
-        """左パネルの各ボタンがControllerの対応するメソッドを正しく呼び出すか検証"""
+    def test_tl_buttons_connection_simple(self, app, button_text_key, method_name):
+        """引数なしでControllerメソッドを直接呼ぶボタンの検証"""
         # 翻訳辞書から期待されるテキストを取得
         expected_text = app.text["label"][button_text_key]
         
@@ -61,6 +68,30 @@ class TestLeftPanel:
         target_button.invoke()
         getattr(app.ctrl, method_name).assert_called_once()
 
+    def test_remove_button_connection(self, app):
+        """削除ボタンが選択データを持ってControllerを呼ぶか検証"""
+        expected_text = app.text["label"]["remove"]
+        target_button = next(c for c in app.tl_frame.winfo_children() 
+                             if isinstance(c, tk.Button) and c.cget("text") == expected_text)
+        
+        mock_data = [{"id": 1, "name": "Tama"}]
+        with patch.object(app, "_get_selected_animals", return_value=mock_data):
+            target_button.invoke()
+        
+        app.ctrl.remove.assert_called_once_with(mock_data)
+
+    def test_edit_button_connection(self, app):
+        """編集ボタンが選択IDを持ってControllerを呼ぶか検証"""
+        expected_text = app.text["label"]["edit"]
+        target_button = next(c for c in app.tl_frame.winfo_children() 
+                             if isinstance(c, tk.Button) and c.cget("text") == expected_text)
+        
+        mock_data = [{"id": 10, "name": "Pochi"}]
+        with patch.object(app, "_get_selected_animals", return_value=mock_data):
+            target_button.invoke()
+        
+        app.ctrl.edit.assert_called_once_with(10)
+
 
 class TestSearchBar:
     def test_search_entry_return(self, app):
@@ -72,39 +103,42 @@ class TestSearchBar:
 
     def test_search_bar_buttons(self, app):
         app.btn_clear.invoke()
-        app.ctrl.clear_search.assert_called_once()
+        app.ctrl.load.assert_called_once() # Layout.clear_searchはctrl.loadを呼ぶ
         app.btn_search.invoke()
-        app.ctrl.search.assert_called_once()
+        app.ctrl.search.assert_called_once_with("all", "")
 
-    def test_search_attr_options(self, app):
+    def test_search_attr_options(self, app, mock_manager):
         """検索範囲の選択肢（Combobox）の内容と初期値を検証"""
-        expected = ["all", "id", "animal_type", "name", "ability"]
-        assert list(app.search_attr["values"]) == expected
+        headers = app.text["headers"]
+        expected_labels = [headers.get(k, k) for k in mock_manager.SEARCH_MAP.keys()]
+        
+        assert list(app.search_attr["values"]) == expected_labels
         assert app.search_attr.get() == "all"
         
-        app.search_attr.set("name")
+        app.search_attr.current(3) # name (keys[3]) を選択
         assert app.search_attr.get() == "name"
 
 
 class TestTreeView:
     def test_columns_setup(self, app):
-        expected_columns = ("id", "type", "name")
+        expected_columns = ("id", "animal_type", "name")
         assert app.tree_animals["columns"] == expected_columns
         assert app.tree_animals.heading("id")["text"] == app.text["headers"]["id"]
-        assert app.tree_animals.heading("type")["text"] == app.text["headers"]["type"]
+        assert app.tree_animals.heading("animal_type")["text"] == app.text["headers"]["animal_type"]
         assert app.tree_animals.heading("name")["text"] == app.text["headers"]["name"]
 
     @pytest.mark.parametrize("column_id, expected_sort_key", [
         ("id", "id"),
-        ("type", "animal_type"),
+        ("animal_type", "animal_type"),
         ("name", "name"),
     ])
     def test_column_sort(self, app, column_id, expected_sort_key):
         header_config = app.tree_animals.heading(column_id)
         app.root.tk.call(header_config["command"])
-        app.ctrl.sort_tree.assert_called_with(expected_sort_key)
+        app.ctrl.sort_tree.assert_called_with(expected_sort_key, "all", "")
 
     def test_right_click_menu(self, app):
+        # Arrange
         item_id = app.tree_animals.insert("", "end", values=(1, "猫", "Tama"))
         app.root.update()
 
@@ -117,31 +151,38 @@ class TestTreeView:
         root_y = app.tree_animals.winfo_rooty() + click_y
 
         with patch.object(app.tree_menu, "post") as mock_post:
+            # Act
             app.tree_animals.event_generate("<Button-3>", x=click_x, y=click_y, rootx=root_x, rooty=root_y)
             app.root.update()
-
+            # Assert
             assert app.tree_animals.selection()[0] == item_id
             mock_post.assert_called_once_with(root_x, root_y)
 
     def test_menu_commands(self, app):
         """右クリックメニューの各項目がControllerに繋がっているか検証"""
-        app.tree_menu.invoke(0) # 編集
-        app.ctrl.edit.assert_called_once()
-        app.tree_menu.invoke(1) # 削除
-        app.ctrl.remove.assert_called_once()
+        # Arrange
+        mock_data = [{"id": 10, "name": "Pochi"}]
+        with patch.object(app, "_get_selected_animals", return_value=mock_data):
+            # Act & Assert
+            app.tree_menu.invoke(0)
+            app.ctrl.edit.assert_called_once_with(10)
+            
+            app.tree_menu.invoke(1)
+            app.ctrl.remove.assert_called_once_with(mock_data)
         
 
 class TestUIUpdateLogic:
     def test_refresh_list(self, app):
+        # Arrange
         app.tree_animals.insert("", "end", values=(999, "不明", "消えるべきデータ"))
         animal1 = MagicMock(id=1, animal_type="cat")
         animal1.name = "Tama"
         animal2 = MagicMock(id=2, animal_type="dog")
         animal2.name = "Pochi"
         mock_animals = [animal1, animal2]
-        
+        # Act
         app.refresh_list(mock_animals)
-        
+        # Assert
         items = app.tree_animals.get_children()
         assert len(items) == 2
         assert app.tree_animals.item(items[0])["values"] == [1, "cat", "Tama"]

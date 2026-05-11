@@ -69,7 +69,7 @@ class CliController:
 
     def search_animal_flow(self):
         """検索フローメソッド"""
-        search_keys = ["all"] + list(self.manager.SEARCH_MAP.keys())
+        search_keys = list(self.manager.SEARCH_MAP.keys())
         
         while True:
             # header

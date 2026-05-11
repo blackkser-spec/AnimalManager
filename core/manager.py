@@ -4,6 +4,7 @@ import random
 
 class AnimalManager:
     SEARCH_MAP = {
+        "all": lambda a: [str(a.id), (a.animal_type or "").lower(), a.name.lower()] + list(a.get_all_ability()),
         "id": lambda a: [str(a.id)],
         "animal_type": lambda a: [(a.animal_type or "").lower()],
         "name": lambda a: [a.name.lower()],
@@ -159,22 +160,17 @@ class AnimalManager:
 
     def search_animal(self, attr: str, keyword: str) -> list[animal.Animal]:
         """キーワードと属性で動物を検索する"""
-        if attr != "all" and attr not in self.SEARCH_MAP:
+        if attr not in self.SEARCH_MAP:
             raise ValidationError("invalid_search_attr")
 
         if not keyword:
-            return sorted(self.animals.values(), key=lambda x: x.id)
+            return self.get_all_animals()
 
         keyword = keyword.lower()
         results = []
+        getter = self.SEARCH_MAP[attr]
         for a in self.animals.values():
-            if attr == "all":
-                values = []
-                for getter in self.SEARCH_MAP.values():
-                    values.extend(getter(a))
-            else:
-                getter = self.SEARCH_MAP.get(attr)
-                values = getter(a)
+            values = getter(a)
             if any(keyword in str(v).lower() for v in values):
                 results.append(a)
                 

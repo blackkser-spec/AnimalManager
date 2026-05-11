@@ -62,7 +62,7 @@ def print_animal_list(animals):
     """動物リストを指定されたフォーマットで表示する"""
     text = fetch_latest_text()
     headers = text["headers"]
-    header = f"{formatter.pad_right(headers['id'], 5)}{formatter.pad_right(headers['type'], 10)}{formatter.pad_right(headers['name'],20)}"
+    header = f"{formatter.pad_right(headers['id'], 5)}{formatter.pad_right(headers['animal_type'], 10)}{formatter.pad_right(headers['name'],20)}"
     print(header)
     print("-" * formatter.get_display_width(header))  # ヘッダーの長さに合わせて線を引く
     for animal in animals:

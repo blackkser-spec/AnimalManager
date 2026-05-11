@@ -1,13 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from enum import Enum
+from core.animal import AVAILABLE_ANIMAL_TYPES, AVAILABLE_ABILITIES
 
-class AnimalTypes(str, Enum):
-    bird    = "bird"
-    cat     = "cat"
-    dog     = "dog"
-    duck    = "duck"
-    fish    = "fish"
-    penguin = "penguin"
+AnimalTypesEnum = Enum("AnimalTypes", {k: k for k in AVAILABLE_ANIMAL_TYPES}, type=str)
+AbilityTypeEnum = Enum("AbilityType", {k: k for k in AVAILABLE_ABILITIES}, type=str)
 
 class Animal(BaseModel):
     animal_type: str
@@ -15,7 +11,7 @@ class Animal(BaseModel):
 
 class AnimalResult(BaseModel):
     id  : int
-    animal_type: AnimalTypes | None = None
+    animal_type: str | None = None
     name: str
 
 class AnimalDetail(BaseModel):
@@ -25,9 +21,16 @@ class AnimalDetail(BaseModel):
     abilities: list = []
 
 class AnimalEdit(BaseModel):
-    animal_type: AnimalTypes | None = None
+    animal_type: str | None = None
     name: str | None = None
     ability: str | None = None
+
+    @field_validator("animal_type")
+    @classmethod
+    def validate_type(cls, v):
+        if v is not None and v not in AVAILABLE_ANIMAL_TYPES:
+            raise ValueError(f"Invalid animal type. Available: {list(AVAILABLE_ANIMAL_TYPES.keys())}")
+        return v
 
 class SearchAttr(str, Enum):
     all = "all"
@@ -40,11 +43,6 @@ class SortAttr(str, Enum):
     id      = "id"
     animal_type = "animal_type"
     name    = "name"
-
-class AbilityType(str, Enum):
-    sound = "sound"
-    fly   = "fly"
-    swim  = "swim"
 
 class ActionResult(BaseModel):
     name: str
