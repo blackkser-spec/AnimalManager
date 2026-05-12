@@ -1,12 +1,13 @@
 from core import animal
 from .exceptions import AnimalNotFoundError, ValidationError
 import random
+from typing import Any
 
 class AnimalManager:
     SEARCH_MAP = {
-        "all": lambda a: [str(a.id), (a.animal_type or "").lower(), a.name.lower()] + list(a.get_all_ability()),
+        "all": lambda a: [str(a.id), a.animal_type.lower(), a.name.lower()] + list(a.get_all_ability()),
         "id": lambda a: [str(a.id)],
-        "animal_type": lambda a: [(a.animal_type or "").lower()],
+        "animal_type": lambda a: [a.animal_type.lower()],
         "name": lambda a: [a.name.lower()],
         "ability": lambda a: list(a.get_all_ability())
     }
@@ -124,7 +125,7 @@ class AnimalManager:
         target_animal.ex_ability.add(new_ability)
         return target_animal
 
-    def act_animal(self, action_name: str) -> list[dict]:
+    def act_animal(self, action_name: str) -> list[dict[str, Any]]:
         """指定された行動を、可能な全ての動物に実行させる"""
         if not action_name:
             return []
@@ -191,12 +192,12 @@ class AnimalManager:
         self._restore_animals(data.get("animals", []))
         self._refresh_initial_state()
 
-    def _restore_counters(self, data: dict) -> None:
+    def _restore_counters(self, data: dict[str, Any]) -> None:
         self.id_counter = data.get("id_counter", 0)
         self.naming_count = {key: 0 for key in animal.AVAILABLE_ANIMAL_TYPES}
         self.naming_count.update(data.get("naming_count", {}))
 
-    def _restore_animals(self, animal_data_list: list[dict]) -> None:
+    def _restore_animals(self, animal_data_list: list[dict[str, Any]]) -> None:
         for item in animal_data_list:
             animal_type = item.get("animal_type")
             if not animal_type:

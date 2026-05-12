@@ -1,14 +1,17 @@
 import requests
 from .dto import AnimalDTO
 from api.exceptions import BadRequest, NotFound, InternalServerError
+from typing import Any
 
-class RemoteBackend:
-    def __init__(self, layout):
+class RemoteBackend:  
+    ALLOWED_ACTIONS = {"sound", "fly", "swim"}
+
+    def __init__(self, layout: object):
         self.layout = layout
         self.base_url = "http://127.0.0.1:8080"
         self.session = requests.Session()
 
-    def _request(self, method, url, **kwargs):
+    def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         """低レイヤーの通信処理。ネットワーク接続エラーのみをキャッチして変換する"""
         try:
             func = getattr(self.session, method.lower())
@@ -16,7 +19,7 @@ class RemoteBackend:
         except requests.exceptions.RequestException as e:
             raise InternalServerError(key="network_connection_error", original_error=str(e))
 
-    def _handle_response(self, response):
+    def _handle_response(self, response: requests.Response) -> requests.Response:
         """共通のエラーハンドリング。APIが返す詳細なエラー情報を抽出する"""
         try:
             response.raise_for_status()
@@ -43,28 +46,28 @@ class RemoteBackend:
                 raise InternalServerError(key="api_response_parse_error", original_error=str(e), response_text=response.text)
         return response
 
-    def execute_add(self, animal_type, name):
+    def execute_add(self, animal_type: str, name: str) -> None:
         payload = {"animal_type": animal_type, "name": name}
         response = self._request("POST", f"{self.base_url}/animals", json=payload)
         self._handle_response(response)
 
-    def execute_add_random(self, count):
+    def execute_add_random(self, count: int) -> None:
         payload = {"count": int(count)}
         response = self._request("POST", f"{self.base_url}/animals/random", params=payload)
         self._handle_response(response)
 
-    def execute_remove(self, animal_id):
+    def execute_remove(self, animal_id: int) -> dict[str, Any]:
         response = self._request("DELETE", f"{self.base_url}/animals/{animal_id}")
         self._handle_response(response)
         data = response.json()
         return {"id": data["id"], "name": data["name"]}
 
-    def execute_edit(self, animal_id, attr, new_value):
+    def execute_edit(self, animal_id: int, attr: str, new_value: str) -> None:
         payload = {attr: new_value}
         response = self._request("PATCH", f"{self.base_url}/animals/{animal_id}", json=payload)
         self._handle_response(response)
 
-    def _to_dto(self, item):
+    def _to_dto(self, item: dict[str, Any]) -> AnimalDTO:
         return AnimalDTO(
             id       = item.get("id", 0),
             name     = item.get("name", "Unknown"),
@@ -72,31 +75,30 @@ class RemoteBackend:
             abilities= list(item.get("abilities", {}).keys()) if isinstance(item.get("abilities"), dict) else []
         )
 
-    def execute_act(self, choice):
+    def execute_act(self, choice: str) -> list[dict[str, str]]:
         response = self._request("GET", f"{self.base_url}/animals/act/{choice}")
         self._handle_response(response)
         return response.json()
     
-    def is_valid_action(self, choice):
-        ALLOWED_ACTIONS = {"sound", "fly", "swim"}
-        return choice in ALLOWED_ACTIONS
+    def is_valid_action(self, choice: str) -> bool:
+        return choice in RemoteBackend.ALLOWED_ACTIONS
     
-    def execute_search(self, attribute, keyword):
+    def execute_search(self, attribute: str, keyword: str) -> list[AnimalDTO]:
         params = {"search_attr": attribute, "keyword": keyword}
         response = self._request("GET", f"{self.base_url}/animals", params=params)
         self._handle_response(response)
         data = response.json()
         return [self._to_dto(item) for item in data]
 
-    def execute_load(self):
+    def execute_load(self) -> list[AnimalDTO]:
         return self.execute_search("all", "")
         
-    def save(self):
+    def save(self) -> bool:
         return False
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         response = self._request("POST", f"{self.base_url}/system/clear")
         self._handle_response(response)
     
-    def has_unsaved_changes(self):
+    def has_unsaved_changes(self) -> bool:
         return False

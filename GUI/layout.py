@@ -171,7 +171,6 @@ class Layout:
         scroll = tk.Scrollbar(self.bl_frame, command=self.log_text.yview)
         self.log_text.config(yscrollcommand=scroll.set, state="disabled")
 
-        # bl_frame内でgridを使いウィジェットを配置することで、bl_frame自体のサイズが子のウィジェットによって変更されるのを防ぎます
         self.bl_frame.grid_rowconfigure(0, weight=1)
         self.bl_frame.grid_columnconfigure(0, weight=1)
         self.log_text.grid(row=0, column=0, sticky="nsew")

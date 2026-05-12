@@ -14,7 +14,7 @@ storage = AnimalRepository("data/animals.json")
 manager = AnimalManager(storage)
 manager.load_from_file()
 
-def custom_openapi():
+def custom_openapi() -> dict:
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
@@ -28,7 +28,7 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-def format_error_response(exc):
+def format_error_response(exc: Exception) -> dict:
     return {
         "key": exc.key,
         "details": exc.details
@@ -57,7 +57,7 @@ async def save_error_handler(request, exc):
     response_model=schemas.AnimalResult,
     summary="動物の追加",
     description="種類と名前を入力して動物を追加します")
-def add_animal(req: schemas.Animal):
+def add_animal(req: schemas.Animal) -> schemas.AnimalResult:
     try:
         new_animal = manager.add_animal(animal_type=req.animal_type, name=req.name)
     except ValidationError as e:
@@ -76,7 +76,7 @@ def add_animal(req: schemas.Animal):
     response_model=list[schemas.AnimalResult],
     summary="動物をランダムに追加",
     description="指定した回数ランダムに動物を追加します")
-def add_random_animal(count: int):
+def add_random_animal(count: int) -> list[schemas.AnimalResult]:
     try:
         added_animals = manager.add_random_animal(count)
     except ValidationError as e:
@@ -97,7 +97,7 @@ def add_random_animal(count: int):
     response_model=schemas.AnimalResult,
     summary="動物の削除",
     description="動物を削除します")
-def remove_animal(id: int):
+def remove_animal(id: int) -> schemas.AnimalResult:
     try:
         removed_animal = manager.remove_animal(id)
     except AnimalNotFoundError as e:
@@ -118,7 +118,7 @@ def remove_animal(id: int):
     summary="動物の属性変更",
     description="動物の属性(種類・名前・特技)を変更します"
 )
-def edit_animal(id: int, req: schemas.AnimalEdit):
+def edit_animal(id: int, req: schemas.AnimalEdit) -> schemas.AnimalDetail:
     update_data = req.model_dump(exclude_unset=True)
     
     try:
@@ -143,7 +143,7 @@ def edit_animal(id: int, req: schemas.AnimalEdit):
     response_model=list[str],
     summary="動物の種類一覧取得",
     description="登録可能な動物の種類一覧を取得します")
-def get_animal_types():
+def get_animal_types() -> list[str]:
     return manager.get_available_animal_types()
 
 @app.get(
@@ -151,7 +151,7 @@ def get_animal_types():
     response_model=list[str],
     summary="特技一覧取得",
     description="登録可能な特技の一覧を取得します")
-def get_abilities():
+def get_abilities() -> list[str]:
     return manager.get_available_abilities()
 
 @app.get(
@@ -160,7 +160,7 @@ def get_abilities():
     summary="動物の詳細取得",
     description="指定したIDの動物の詳細情報を取得します"
 )
-def get_animal(id: int):
+def get_animal(id: int) -> schemas.AnimalDetail:
     try:
         animal = manager.get_animal(id)
     except AnimalNotFoundError as e:
@@ -179,7 +179,11 @@ def get_animal(id: int):
     summary="動物listの取得",
     description="検索条件(attr,keyword)を指定して、動物のリストを取得します"
 )
-def search_animal(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyword: str = None, sort_by: schemas.SortAttr = schemas.SortAttr.id):
+def search_animal(
+    search_attr: schemas.SearchAttr = schemas.SearchAttr.all, 
+    keyword: str | None = None, 
+    sort_by: schemas.SortAttr = schemas.SortAttr.id
+    ) -> list[schemas.AnimalDetail]:
     """
     attr (Query Parameter): 検索対象の属性
     "すべて","ID", "種類", "名前", "特技" が指定可能
@@ -209,7 +213,7 @@ def search_animal(search_attr: schemas.SearchAttr = schemas.SearchAttr.all, keyw
     summary="動物の特技実行",
     description="list内の動物に、指定した特技を実行させます"
 )
-def act_animal(ability: str):  # schemas.AbilityType の警告を避けるため str に変更
+def act_animal(ability: str) -> list[schemas.ActionResult]:
     try:
         result = manager.act_animal(ability)
     except ValidationError as e:
@@ -226,7 +230,7 @@ def act_animal(ability: str):  # schemas.AbilityType の警告を避けるため
     "/system/clear",
     summary="データリセット",
     description="全てのデータを消去し初期状態に戻します")
-def clear_data():
+def clear_data() -> dict[str, str]:
     manager.clear_data()
     manager.save_to_file()
     return {"message": "Data has been reset successfully"}

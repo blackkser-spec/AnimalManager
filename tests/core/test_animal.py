@@ -37,6 +37,7 @@ class TestFromDict:
         data = {
             "id": 1,
             "name": "TEST_DUCK",
+            "animal_type": "duck",
             "ex_ability": ["sound", "fly", "swim"]
         }
         # Act
@@ -44,6 +45,7 @@ class TestFromDict:
         # Assert
         assert result.id == 1
         assert result.name == "TEST_DUCK"
+        assert result.animal_type == "duck"
         assert result.ex_ability == {"sound", "fly", "swim"}
 
     def test_success_without_ex_ability(self):
@@ -52,12 +54,14 @@ class TestFromDict:
         data = {
             "id": 2,
             "name": "TEST_CAT",
+            "animal_type": "cat",
         }
         # Act
         result = Animal.from_dict(data)
         # Assert
         assert result.id == 2
         assert result.name == "TEST_CAT"
+        assert result.animal_type == "cat"
         assert result.ex_ability == set() # 空の集合として初期化されることを確認
 
 class TestGetAllAbility:

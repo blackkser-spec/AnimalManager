@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator
 from enum import Enum
 from core.animal import AVAILABLE_ANIMAL_TYPES, AVAILABLE_ABILITIES
+from pydantic import Field
 
 AnimalTypesEnum = Enum("AnimalTypes", {k: k for k in AVAILABLE_ANIMAL_TYPES}, type=str)
 AbilityTypeEnum = Enum("AbilityType", {k: k for k in AVAILABLE_ABILITIES}, type=str)
@@ -18,7 +19,7 @@ class AnimalDetail(BaseModel):
     id       : int
     animal_type  : str
     name     : str
-    abilities: list = []
+    abilities: list[str] = Field(default_factory=list)
 
 class AnimalEdit(BaseModel):
     animal_type: str | None = None

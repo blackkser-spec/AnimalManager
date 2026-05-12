@@ -1,6 +1,7 @@
 import json
 import os
 import datetime
+from typing import Any
 from pydantic import BaseModel, ValidationError as PydanticValidationError, Field
 from core.exceptions import LoadError, SaveError
 
@@ -17,10 +18,10 @@ class StorageSchema(BaseModel):
     animals: list[AnimalSchema]
 
 class AnimalRepository:
-    def __init__(self, file_path):
+    def __init__(self, file_path: str) -> None:
         self.file_path = file_path
 
-    def save(self, data):
+    def save(self, data: dict[str, Any]) -> None:
         try:
             validated_data = StorageSchema.model_validate(data)
             directory = os.path.dirname(self.file_path)
@@ -34,7 +35,7 @@ class AnimalRepository:
         except OSError:
             raise SaveError("save_error")
 
-    def load(self):
+    def load(self) -> dict[str, Any] | None:
         try:
             if not os.path.exists(self.file_path):
                 return None

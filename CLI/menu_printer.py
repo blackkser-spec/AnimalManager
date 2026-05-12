@@ -71,7 +71,7 @@ def print_animal_list(animals):
         name = formatter.pad_right(animal.name, 20)
         print(f"{id_str}{type}{name}")
 
-def get_text(section, key, /, **kwargs):
+def get_text(section, key, /, **kwargs) -> str:
     text = fetch_latest_text()
     template = text[section][key]
     try:

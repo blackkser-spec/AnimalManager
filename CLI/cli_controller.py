@@ -1,5 +1,6 @@
 from cli import menu_printer
 from enum import Enum, auto
+from typing import Any, Callable
 from core.exceptions import ValidationError, RepositoryError
 
 class FlowResult(Enum):
@@ -8,15 +9,14 @@ class FlowResult(Enum):
     EXIT = auto()
 
 class CliController:
-    def __init__(self, manager):
+    def __init__(self, manager: Any) -> None:
         self.manager = manager
         self.menu_printer = menu_printer
 
     # --- メインエントリーポイント (main.py から呼び出される主要フロー) ---
 
-    def main_menu(self):
+    def main_menu(self) -> None:
         """アプリケーションのメインループ"""
-        # actionsの並びはtext.TEXTS["main"]と揃えること
         actions = [
             self.manage_animal_flow,
             self.manage_list_flow,
@@ -41,7 +41,7 @@ class CliController:
             except RepositoryError:
                 pass
 
-    def manage_animal_flow(self):
+    def manage_animal_flow(self) -> FlowResult:
         """動物管理フローメソッド"""
         actions = [
             self.add_animal_flow,
@@ -55,7 +55,7 @@ class CliController:
             actions
         )
 
-    def manage_list_flow(self):
+    def manage_list_flow(self) -> FlowResult:
         """リスト管理フローメソッド"""
         actions = [
             self.show_animal_list_flow,
@@ -67,7 +67,7 @@ class CliController:
             actions
         )
 
-    def search_animal_flow(self):
+    def search_animal_flow(self) -> FlowResult:
         """検索フローメソッド"""
         search_keys = list(self.manager.SEARCH_MAP.keys())
         
@@ -103,7 +103,7 @@ class CliController:
                 self.menu_printer.print_error(e.key, **e.kwargs)
                 continue
 
-    def change_language(self):
+    def change_language(self) -> FlowResult:
         from text.loader import SUPPORTED_LANGUAGES
         lang_keys = list(SUPPORTED_LANGUAGES.keys())
         self.menu_printer.print_inline_options("language_choice_header", lang_keys)
@@ -119,7 +119,7 @@ class CliController:
         return FlowResult.TO_MAIN
 
 
-    def exit_manager(self):
+    def exit_manager(self) -> FlowResult:
         try:
             self.manager.save_to_file()
             self.menu_printer.print_success("app_exited")
@@ -128,7 +128,7 @@ class CliController:
             self.menu_printer.print_error(e.key, **e.kwargs)
             raise
 
-    def _execute_menu_loop(self, print_func, actions, prompt=None):
+    def _execute_menu_loop(self, print_func: Callable, actions: list, prompt: str | None = None) -> FlowResult:
         while True:
             print_func()
             action = self._prompt_for_choice(actions, prompt=prompt)
@@ -142,7 +142,7 @@ class CliController:
 
     # --- Manage Animal Actionフロー ---
 
-    def add_animal_flow(self):
+    def add_animal_flow(self) -> FlowResult:
         animal_type = self._select_animal_type_flow(self.menu_printer.get_text("prompts", "select_animal_type"))
         if animal_type is None:
             self.menu_printer.print_cancel("add_cancelled")
@@ -159,8 +159,9 @@ class CliController:
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
+            return FlowResult.TO_BACK
 
-    def add_random_flow(self):
+    def add_random_flow(self) -> FlowResult:
         """ランダムに動物を追加するフロー"""
         count = self._prompt_for_input(self.menu_printer.get_text("prompts", "input_count"),
                                         validator=self._validate_positive_int)
@@ -176,8 +177,9 @@ class CliController:
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
+            return FlowResult.TO_BACK
 
-    def remove_animal_flow(self):
+    def remove_animal_flow(self) -> FlowResult:
         try:
             animal_id = self._select_animal_id_flow(self.menu_printer.get_text("prompts", "input_id"))
             if animal_id is None:
@@ -189,8 +191,9 @@ class CliController:
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
+            return FlowResult.TO_BACK
 
-    def edit_animal_attr_flow(self):
+    def edit_animal_attr_flow(self) -> FlowResult:
         target_id = self._select_animal_id_flow(self.menu_printer.get_text("prompts", "input_id"))
         if target_id is None:
             self.menu_printer.print_cancel("edit_cancelled")
@@ -207,7 +210,7 @@ class CliController:
             return FlowResult.TO_BACK
         return selected_flow(target_id)
 
-    def edit_type_flow(self, target_id):
+    def edit_type_flow(self, target_id: int) -> FlowResult:
         target_animal = self.manager.get_animal(target_id)
         # "ID:{target_id} {target_animal.name} の新しい種類を入力"
         prompt = self.menu_printer.get_text("prompts", "new_type_formatted", animal_id=target_id, animal_name=target_animal.name)
@@ -222,8 +225,9 @@ class CliController:
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
+            return FlowResult.TO_BACK
 
-    def edit_name_flow(self, target_id):
+    def edit_name_flow(self, target_id: int) -> FlowResult:
         target_animal = self.manager.get_animal(target_id)
         # "ID:{target_id} {target_animal.name} の新しい名前を入力"
         prompt = self.menu_printer.get_text("prompts", "new_name_formatted", animal_id=target_id, animal_name=target_animal.name)
@@ -239,15 +243,15 @@ class CliController:
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
+            return FlowResult.TO_BACK
 
-    def edit_ability_flow(self, target_id):
+    def edit_ability_flow(self, target_id: int) -> FlowResult:
         target_animal = self.manager.get_animal(target_id)
         abilities = self.manager.get_available_abilities()
         self.menu_printer.print_ability_choice(abilities)
         # "ID:{target_id} {target_animal.name} の新しい特技を入力"
         prompt = self.menu_printer.get_text("prompts", "new_ability_formatted", animal_id=target_id, animal_name=target_animal.name)
-        new_ability = self._prompt_for_input(prompt, 
-                                             validator=self._validate_ability)
+        new_ability = self._prompt_for_input(prompt, validator=self._validate_ability)
         if new_ability is None:
             self.menu_printer.print_cancel("edit_cancelled")
             return FlowResult.TO_BACK
@@ -258,12 +262,12 @@ class CliController:
             return FlowResult.TO_MAIN
         except ValidationError as e:
             self.menu_printer.print_error(e.key, **e.kwargs)
+            return FlowResult.TO_BACK
 
-    def act_animal_flow(self):
+    def act_animal_flow(self) -> FlowResult:
         available_actions = self.manager.ALLOWED_ACTIONS
         self.menu_printer.print_inline_options("action_choice_header", available_actions)
-        action_name = self._prompt_for_input(self.menu_printer.get_text("prompts", "input_action"), 
-                                             validator=lambda x: self._validate_selection_from_list(x, available_actions))
+        action_name = self._prompt_for_input(self.menu_printer.get_text("prompts", "input_action"), validator=lambda x: self._validate_selection_from_list(x, available_actions))
         if action_name is None:
             self.menu_printer.print_cancel("act_cancelled")
             return FlowResult.TO_BACK
@@ -285,7 +289,7 @@ class CliController:
 
     # --- Manage List Actionフロー ---
 
-    def show_animal_list_flow(self):
+    def show_animal_list_flow(self) -> FlowResult:
         try:
             self.menu_printer.print_animal_list(self.manager.get_all_animals())
             return FlowResult.TO_MAIN
@@ -293,7 +297,7 @@ class CliController:
             self.menu_printer.print_error("list_fetch_error")
             return FlowResult.TO_MAIN
     
-    def sort_list_flow(self):
+    def sort_list_flow(self) -> FlowResult:
         sort_keys = self.manager.ALLOWED_SORT_KEYS
 
         self.menu_printer.print_inline_options("sort_choice_header", sort_keys)
@@ -313,7 +317,7 @@ class CliController:
             self.menu_printer.print_error(e.key, **e.kwargs)
             return FlowResult.TO_BACK
         
-    def clear_data_flow(self):
+    def clear_data_flow(self) -> FlowResult:
         """データを全消去するフロー"""
         self.menu_printer.print_confirm("clear_data_confirmation")
         # 入力待ち。メッセージは print_confirm で表示済みのため簡潔にする
@@ -328,11 +332,11 @@ class CliController:
 
     # --- 入力処理共通化/ヘルパーメソッド ---
 
-    def _get_raw_input(self, prompt):
+    def _get_raw_input(self, prompt: str) -> str:
         """実際に標準入力を受け取る唯一の場所。テスト時はここをMock化する。"""
         return input(prompt)
 
-    def _select_animal_id_flow(self, prompt):
+    def _select_animal_id_flow(self, prompt: str) -> int | None:
         """動物リストを表示し、ユーザーにIDを選択させるフロー"""
         self.menu_printer.print_animal_list(self.manager.get_all_animals())
 
@@ -342,7 +346,7 @@ class CliController:
             error_msg="invalid_value"
         )
 
-    def _select_animal_type_flow(self, prompt):
+    def _select_animal_type_flow(self, prompt: str) -> str | None:
         """動物の種類リストを表示し、ユーザーに種類を選択させるフロー"""
         types = self.manager.get_available_animal_types()
         self.menu_printer.print_animal_types(types)
@@ -350,7 +354,7 @@ class CliController:
         return self._prompt_for_input(prompt, validator=self._validate_animal_type)
 
     def _prompt_for_choice(self, choices, prompt=None, allow_cancel=True):
-        """汎用的な選択プロンプト。リストまたは辞書を受け取り、ユーザーの選択に対応する値を返す。"""
+        """汎用的な選択プロンプト。"""
         if prompt is None:
             prompt = self.menu_printer.get_text("prompts", "select_action")
 
@@ -395,7 +399,7 @@ class CliController:
 
     # --- Validators ---
 
-    def _validate_positive_int(self, text):
+    def _validate_positive_int(self, text: str) -> int:
         try:
             val = int(text)
         except ValueError:
@@ -405,7 +409,7 @@ class CliController:
             raise ValueError("require_positive_int")
         return val
 
-    def _validate_animal_id(self, text):
+    def _validate_animal_id(self, text: str) -> int:
         try:
             target_id = int(text)
         except ValueError:
@@ -415,7 +419,7 @@ class CliController:
             raise ValueError("id_not_found")
         return target_id
 
-    def _validate_selection_from_list(self, text, valid_list, error_msg="invalid_value"):
+    def _validate_selection_from_list(self, text, valid_list, error_msg="invalid_value") -> str:
         """数値(index)または文字列でリストから選択を検証する共通ロジック"""
         if text.isdigit():
             idx = int(text) - 1
@@ -425,10 +429,10 @@ class CliController:
             return text
         raise ValueError(error_msg)
 
-    def _validate_animal_type(self, text):
+    def _validate_animal_type(self, text: str) -> str:
         types = self.manager.get_available_animal_types()
         return self._validate_selection_from_list(text, types, "invalid_animal_type")
 
-    def _validate_ability(self, text):
+    def _validate_ability(self, text: str) -> str:
         abilities = self.manager.get_available_abilities()
         return self._validate_selection_from_list(text, abilities, "ability_not_found")

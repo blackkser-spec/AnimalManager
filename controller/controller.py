@@ -1,5 +1,6 @@
 from tkinter import messagebox
 from text.loader import set_language, get_text
+from typing import Any, Callable
 
 class Controller:
     def __init__(self, layout, manager):
@@ -20,15 +21,15 @@ class Controller:
         else:
             self.backend = None
 
-    def _post_action(self, window, msg):
-        # アクション後は常に最新のリストを取得して反映させる
+    def _post_action(self, window: object, msg: str) -> None:
         self.load()
         if window:
             window.destroy()
         if msg:
             self.layout.log(msg)
 
-    def _handle_action(self, func, *args, window=None, msg=None, reload=True):
+    def _handle_action(self, func: Callable[..., Any], *args: Any, window: object | None=None, 
+                       msg: str | None=None, reload: bool = True) -> Any | None:
         try:
             result = func(*args)
             if reload:
@@ -46,25 +47,25 @@ class Controller:
             return None
 
 
-    def add(self):
+    def add(self) -> None:
         self.layout.open_add_dialog()
 
-    def execute_add(self, animal_type, animal_name):
+    def execute_add(self, animal_type: str, animal_name: str) -> None:
         self._handle_action(
             self.backend.execute_add, animal_type, animal_name,
             window=self.layout.add_window,
             msg=self.text["success"]["animal_added"].format(animal_type=animal_type, animal_name=animal_name))
 
-    def add_random(self):
+    def add_random(self) -> None:
         self.layout.open_random_dialog()
 
-    def execute_add_random(self, count):
-        return self._handle_action(
+    def execute_add_random(self, count: int) -> None:
+        self._handle_action(
             self.backend.execute_add_random, count,
             window=self.layout.random_window,
             msg=self.text["success"]["random_animals_added"].format(count=count))
 
-    def remove(self, selected_animal_data: list[dict]):
+    def remove(self, selected_animal_data: list[dict[str, Any]]) -> None:
         def remove_loop():
             for data in selected_animal_data:
                 animal_id = data["id"]
@@ -75,10 +76,10 @@ class Controller:
 
         self._handle_action(remove_loop, window=None, msg=None)
 
-    def edit(self, animal_id: int):
+    def edit(self, animal_id: int) -> None:
         self.layout.open_edit_dialog(animal_id)
 
-    def execute_edit(self, animal_id: int, attr: str, new_value: str, display_label: str):
+    def execute_edit(self, animal_id: int, attr: str, new_value: str, display_label: str) -> None:
         if not attr:
             self.layout.log(self.text["error"]["no_selection"])
             return
@@ -88,10 +89,10 @@ class Controller:
             msg=self.text["success"]["animal_edit_completed"].format(animal_id=animal_id, edit_mode=display_label or attr)
         )
 
-    def act(self): 
+    def act(self) -> None:
         self.layout.open_act_dialog()
 
-    def execute_act(self, choice):
+    def execute_act(self, choice: str) -> None:
         if self.backend.is_valid_action(choice) is False:
             self.layout.log(self.text["error"]["invalid_action"])
             return
@@ -115,17 +116,17 @@ class Controller:
 
                     self.layout.log(f"[Missing Text] {fallback}")
 
-    def clear_search(self):
+    def clear_search(self) -> None:
         self.layout.search_entry.delete(0, "end")
         self.layout.refresh_list()
 
-    def search(self, attribute, keyword):
+    def search(self, attribute: str, keyword: str) -> None:
         # 検索時は全件ロードをスキップ
         results = self._handle_action(self.backend.execute_search, attribute, keyword, reload=False)
         if results is not None:
             self.layout.refresh_list(results)
 
-    def sort_tree(self, category, attribute, keyword):
+    def sort_tree(self, category: str, attribute: str, keyword: str) -> None:
         if self.last_sort_col == category:
             self.sort_desc = not self.sort_desc
         else:
@@ -138,7 +139,7 @@ class Controller:
             results.sort(key=lambda x: getattr(x, category), reverse=self.sort_desc)
             self.layout.refresh_list(results)
             
-    def load(self):
+    def load(self) -> None:
         try:
             # backendからデータを取得してレイアウトに渡す
             results = self.backend.execute_load()
@@ -146,14 +147,14 @@ class Controller:
         except Exception:
             self.layout.log(self.text["error"]["load_error"])
 
-    def save(self):
+    def save(self) -> None:
         result = self._handle_action(self.backend.save)
         if result is True:
             self.layout.log(self.text["success"]["data_saved"])
         elif result is False:
             self.layout.log(self.text["error"]["api_save_restricted"])
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         confirm = messagebox.askyesno(
             self.text["confirm"]["decision"],
             self.text["confirm"]["clear_data_gui"]
@@ -163,7 +164,7 @@ class Controller:
         else:
             self.layout.log(self.text["cancel"]["clear_data_cancelled"])
     
-    def on_close(self):
+    def on_close(self) -> None:
         if self.backend.has_unsaved_changes():
             result = messagebox.askyesnocancel(
                 self.text["confirm"]["decision"],
